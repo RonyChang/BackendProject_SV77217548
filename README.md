@@ -1,5 +1,7 @@
 # BackendProject_SV77217548
 Spacegurumis
+<<<<<<< Updated upstream
+=======
 
 ## Estructura
 - `backend/`: API REST (Node.js + Express).
@@ -23,6 +25,14 @@ GET http://localhost:3000/health
 # Response: { "status": "ok" }
 ```
 
+## Base de datos (v0.1.1)
+```bash
+# Desde la raiz del repo
+docker compose up -d
+```
+
+Guia completa: `backend/docs/setup-postgresql.md`
+
 ## Frontend (v0.1.0)
 ```bash
 cd frontend
@@ -34,3 +44,4 @@ Abrir en el navegador:
 ```
 http://localhost:5173
 ```
+>>>>>>> Stashed changes
