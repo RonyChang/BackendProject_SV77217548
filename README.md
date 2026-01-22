@@ -1,7 +1,5 @@
 # BackendProject_SV77217548
 Spacegurumis
-<<<<<<< Updated upstream
-=======
 
 ## Estructura
 - `backend/`: API REST (Node.js + Express).
@@ -10,6 +8,7 @@ Spacegurumis
 ## Requisitos
 - Node.js 18+
 - npm
+- Docker Desktop (para base de datos)
 
 ## Backend (v0.1.0)
 ```bash
@@ -33,6 +32,12 @@ docker compose up -d
 
 Guia completa: `backend/docs/setup-postgresql.md`
 
+## Configuracion externa (v0.1.2)
+- `backend/docs/setup-google-oauth.md`
+- `backend/docs/setup-smtp-email.md`
+- `backend/docs/setup-whatsapp.md`
+- `backend/docs/setup-stripe.md`
+
 ## Frontend (v0.1.0)
 ```bash
 cd frontend
@@ -44,4 +49,3 @@ Abrir en el navegador:
 ```
 http://localhost:5173
 ```
->>>>>>> Stashed changes

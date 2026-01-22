@@ -21,3 +21,10 @@
 - Variables de entorno PG* en `.env.example`.
 - README actualizado con pasos basicos de DB.
 - Puerto host de Postgres configurado en 5433.
+
+## Version: v0.1.2
+
+### Cambios
+- `.env.example` completado con variables base del proyecto.
+- Nuevas guias: Google OAuth, SMTP, WhatsApp y Stripe en `backend/docs/`.
+- README actualizado con enlaces a guias de configuracion.
