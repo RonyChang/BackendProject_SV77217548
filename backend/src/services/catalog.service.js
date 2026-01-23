@@ -1,5 +1,19 @@
 const catalogRepository = require('../repositories/catalog.repository');
 
+// Convierte centimos a soles para las respuestas del API.
+function centsToSoles(value) {
+    if (value === null || value === undefined) {
+        return null;
+    }
+
+    const cents = Number(value);
+    if (Number.isNaN(cents)) {
+        return null;
+    }
+
+    return Number((cents / 100).toFixed(2));
+}
+
 async function listCategories() {
     const rows = await catalogRepository.fetchActiveCategories();
     return rows.map((row) => ({
@@ -18,13 +32,54 @@ async function listProducts(filters, pagination) {
         id: row.id,
         name: row.name,
         slug: row.slug,
-        basePrice: row.basePrice,
+        price: centsToSoles(row.priceCents),
+        variantsCount: row.variantsCount,
         category: {
             id: row.categoryId,
             name: row.categoryName,
             slug: row.categorySlug,
         },
     }));
+
+    const totalPages = total === 0 ? 0 : Math.ceil(total / pagination.pageSize);
+
+    return {
+        items,
+        meta: {
+            total,
+            page: pagination.page,
+            pageSize: pagination.pageSize,
+            totalPages,
+        },
+    };
+}
+
+async function listVariants(filters, pagination) {
+    const [rows, total] = await Promise.all([
+        catalogRepository.fetchActiveVariants(filters, pagination),
+        catalogRepository.fetchActiveVariantsCount(filters),
+    ]);
+    const items = rows.map((row) => {
+        const stockAvailable = Math.max(row.stock - row.reserved, 0);
+
+        return {
+            id: row.id,
+            sku: row.sku,
+            variantName: row.variantName,
+            price: centsToSoles(row.priceCents),
+            stockAvailable,
+            product: {
+                id: row.productId,
+                name: row.productName,
+                slug: row.productSlug,
+            },
+            category: {
+                id: row.categoryId,
+                name: row.categoryName,
+                slug: row.categorySlug,
+            },
+        };
+    });
 
     const totalPages = total === 0 ? 0 : Math.ceil(total / pagination.pageSize);
 
@@ -48,13 +103,12 @@ async function getProductBySlug(slug) {
     const variantRows = await catalogRepository.fetchProductVariants(productRow.id);
     const variants = variantRows.map((row) => {
         const stockAvailable = Math.max(row.stock - row.reserved, 0);
-        const price = row.price === null ? productRow.basePrice : row.price;
 
         return {
             id: row.id,
             sku: row.sku,
             variantName: row.variantName,
-            price,
+            price: centsToSoles(row.priceCents),
             stockAvailable,
         };
     });
@@ -64,7 +118,6 @@ async function getProductBySlug(slug) {
         name: productRow.name,
         slug: productRow.slug,
         description: productRow.description,
-        basePrice: productRow.basePrice,
         category: {
             id: productRow.categoryId,
             name: productRow.categoryName,
@@ -74,8 +127,38 @@ async function getProductBySlug(slug) {
     };
 }
 
+async function getVariantBySku(sku) {
+    const row = await catalogRepository.fetchVariantBySku(sku);
+    if (!row) {
+        return null;
+    }
+
+    const stockAvailable = Math.max(row.stock - row.reserved, 0);
+
+    return {
+        id: row.id,
+        sku: row.sku,
+        variantName: row.variantName,
+        price: centsToSoles(row.priceCents),
+        stockAvailable,
+        product: {
+            id: row.productId,
+            name: row.productName,
+            slug: row.productSlug,
+            description: row.productDescription,
+        },
+        category: {
+            id: row.categoryId,
+            name: row.categoryName,
+            slug: row.categorySlug,
+        },
+    };
+}
+
 module.exports = {
     listCategories,
     listProducts,
+    listVariants,
     getProductBySlug,
+    getVariantBySku,
 };

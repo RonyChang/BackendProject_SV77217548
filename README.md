@@ -36,6 +36,21 @@ Guia completa: `backend/docs/setup-postgresql.md`
 Archivo SQL: `backend/db/schema.sql`  
 Documento: `backend/docs/schema.md`
 
+## Catalogo (v0.2.3)
+Listado y detalle por variantes:
+```
+GET /api/v1/catalog/variants
+GET /api/v1/catalog/variants/:sku
+```
+
+Listado de tipos (producto base):
+```
+GET /api/v1/catalog/products
+GET /api/v1/catalog/products/:slug
+```
+
+Filtros soportados en listados: `category`, `q`, `minPrice`, `maxPrice`, `page`, `pageSize`.
+
 ## Configuracion externa (v0.1.2)
 - `backend/docs/setup-google-oauth.md`
 - `backend/docs/setup-smtp-email.md`
@@ -53,3 +68,5 @@ Abrir en el navegador:
 ```
 http://localhost:5173
 ```
+
+Si el backend no corre en el mismo origen, define `window.API_BASE_URL` en `frontend/index.html`.
