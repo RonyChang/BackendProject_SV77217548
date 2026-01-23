@@ -9,8 +9,11 @@ async function listCategories() {
     }));
 }
 
-async function listProducts() {
-    const rows = await catalogRepository.fetchActiveProducts();
+async function listProducts(filters, pagination) {
+    const [rows, total] = await Promise.all([
+        catalogRepository.fetchActiveProducts(filters, pagination),
+        catalogRepository.fetchActiveProductsCount(filters),
+    ]);
     const items = rows.map((row) => ({
         id: row.id,
         name: row.name,
@@ -23,9 +26,16 @@ async function listProducts() {
         },
     }));
 
+    const totalPages = total === 0 ? 0 : Math.ceil(total / pagination.pageSize);
+
     return {
         items,
-        total: items.length,
+        meta: {
+            total,
+            page: pagination.page,
+            pageSize: pagination.pageSize,
+            totalPages,
+        },
     };
 }
 
