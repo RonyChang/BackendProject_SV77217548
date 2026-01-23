@@ -12,3 +12,28 @@
 
 ### Notas
 - Esta version valida el arranque del proyecto y el health check.
+
+## Version: v0.1.1
+
+### Cambios
+- Agregado `docker-compose.yml` para Postgres con volumen persistente.
+- Nueva guia `backend/docs/setup-postgresql.md`.
+- Variables de entorno PG* en `.env.example`.
+- README actualizado con pasos basicos de DB.
+- Puerto host de Postgres configurado en 5433.
+
+## Version: v0.1.2
+
+### Cambios
+- `.env.example` completado con variables base del proyecto.
+- Nuevas guias: Google OAuth, SMTP, WhatsApp y Stripe en `backend/docs/`.
+- README actualizado con enlaces a guias de configuracion.
+
+## Version: v0.2.0
+
+### Cambios
+- Esquema SQL base del catalogo en `backend/db/schema.sql`.
+- Documentacion del esquema en `backend/docs/schema.md`.
+- Endpoints read-only de catalogo para categorias y productos.
+- Detalle de producto con variantes e inventario disponible.
+- Conexion a Postgres via `pg` y pool centralizado en config.
