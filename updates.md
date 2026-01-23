@@ -37,3 +37,9 @@
 - Endpoints read-only de catalogo para categorias y productos.
 - Detalle de producto con variantes e inventario disponible.
 - Conexion a Postgres via `pg` y pool centralizado en config.
+
+## Version: v0.2.1
+
+### Cambios
+- Filtros por categoria, texto y precio en listado de productos.
+- Paginacion con `page` y `pageSize`, y metadata en la respuesta.

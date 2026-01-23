@@ -12,7 +12,46 @@ async function fetchActiveCategories() {
     return result.rows;
 }
 
-async function fetchActiveProducts() {
+// Construye filtros dinamicos para el listado de productos.
+function buildProductFilters(filters) {
+    const clauses = ['p.is_active = true'];
+    const values = [];
+
+    if (filters.category) {
+        values.push(filters.category);
+        clauses.push(`c.slug = $${values.length}`);
+    }
+
+    if (filters.q) {
+        values.push(`%${filters.q}%`);
+        clauses.push(`p.name ILIKE $${values.length}`);
+    }
+
+    if (typeof filters.minPrice === 'number') {
+        values.push(filters.minPrice);
+        clauses.push(`p.base_price >= $${values.length}`);
+    }
+
+    if (typeof filters.maxPrice === 'number') {
+        values.push(filters.maxPrice);
+        clauses.push(`p.base_price <= $${values.length}`);
+    }
+
+    return {
+        whereSql: clauses.length ? `WHERE ${clauses.join(' AND ')}` : '',
+        values,
+    };
+}
+
+async function fetchActiveProducts(filters, pagination) {
+    const { whereSql, values } = buildProductFilters(filters);
+    const params = [...values];
+
+    params.push(pagination.pageSize);
+    const limitIndex = params.length;
+    params.push((pagination.page - 1) * pagination.pageSize);
+    const offsetIndex = params.length;
+
     const query = `
         SELECT
             p.id,
@@ -24,12 +63,26 @@ async function fetchActiveProducts() {
             c.slug AS "categorySlug"
         FROM products p
         JOIN categories c ON c.id = p.category_id
-        WHERE p.is_active = true
-        ORDER BY p.name ASC;
+        ${whereSql}
+        ORDER BY p.name ASC
+        LIMIT $${limitIndex} OFFSET $${offsetIndex};
     `;
 
-    const result = await pool.query(query);
+    const result = await pool.query(query, params);
     return result.rows;
+}
+
+async function fetchActiveProductsCount(filters) {
+    const { whereSql, values } = buildProductFilters(filters);
+    const query = `
+        SELECT COUNT(*)::int AS total
+        FROM products p
+        JOIN categories c ON c.id = p.category_id
+        ${whereSql};
+    `;
+
+    const result = await pool.query(query, values);
+    return result.rows[0] ? result.rows[0].total : 0;
 }
 
 async function fetchProductBySlug(slug) {
@@ -76,6 +129,7 @@ async function fetchProductVariants(productId) {
 module.exports = {
     fetchActiveCategories,
     fetchActiveProducts,
+    fetchActiveProductsCount,
     fetchProductBySlug,
     fetchProductVariants,
 };
