@@ -28,3 +28,12 @@
 - `.env.example` completado con variables base del proyecto.
 - Nuevas guias: Google OAuth, SMTP, WhatsApp y Stripe en `backend/docs/`.
 - README actualizado con enlaces a guias de configuracion.
+
+## Version: v0.2.0
+
+### Cambios
+- Esquema SQL base del catalogo en `backend/db/schema.sql`.
+- Documentacion del esquema en `backend/docs/schema.md`.
+- Endpoints read-only de catalogo para categorias y productos.
+- Detalle de producto con variantes e inventario disponible.
+- Conexion a Postgres via `pg` y pool centralizado en config.

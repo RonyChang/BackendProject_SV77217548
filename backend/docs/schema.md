@@ -1,0 +1,39 @@
+# Esquema de Base de Datos
+
+## Catalogo
+
+### categories
+- `id` (PK)
+- `name`
+- `slug` (unique)
+- `description`
+- `is_active`
+- `created_at`, `updated_at`
+
+### products
+- `id` (PK)
+- `category_id` (FK -> categories.id)
+- `name`
+- `slug` (unique)
+- `description`
+- `base_price`
+- `is_active`
+- `created_at`, `updated_at`
+
+### product_variants
+- `id` (PK)
+- `product_id` (FK -> products.id)
+- `sku` (unique)
+- `variant_name`
+- `price`
+- `weight_grams`
+- `size_label`
+- `created_at`, `updated_at`
+
+### inventory
+- `id` (PK)
+- `product_variant_id` (FK -> product_variants.id)
+- `stock`
+- `reserved`
+- `updated_at`
+

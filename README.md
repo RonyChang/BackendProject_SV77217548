@@ -32,6 +32,10 @@ docker compose up -d
 
 Guia completa: `backend/docs/setup-postgresql.md`
 
+## Esquema (v0.2.0)
+Archivo SQL: `backend/db/schema.sql`  
+Documento: `backend/docs/schema.md`
+
 ## Configuracion externa (v0.1.2)
 - `backend/docs/setup-google-oauth.md`
 - `backend/docs/setup-smtp-email.md`
