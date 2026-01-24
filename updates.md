@@ -57,3 +57,10 @@
 - Filtros y paginacion aplican al listado de variantes.
 - Listado de tipos en `/api/v1/catalog/products` ahora incluye `variantsCount`.
 - CORS restringido a dominios HTTPS y entornos locales.
+
+## Version: v0.3.0
+
+### Cambios
+- Registro y login con JWT en `/api/v1/auth/register` y `/api/v1/auth/login`.
+- Nueva tabla `users` con password hasheada y rol por defecto `customer`.
+- Validaciones minimas para email y contraseña.
