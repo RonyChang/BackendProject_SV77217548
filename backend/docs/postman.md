@@ -1,4 +1,4 @@
-# Postman - Pruebas API (v0.4.1)
+# Postman - Pruebas API (v0.5.0)
 
 ## Base URL
 - Local: `http://localhost:3000`
@@ -163,3 +163,10 @@ Ejemplo:
 - `DELETE {{baseUrl}}/api/v1/cart`
   - Requiere `Authorization: Bearer {{token}}`.
   - Vacia el carrito del usuario.
+
+### Ordenes
+- `POST {{baseUrl}}/api/v1/orders`
+  - Requiere `Authorization: Bearer {{token}}`.
+  - Crea una orden `pendingPayment` desde el carrito.
+  - Esperado: `201` con `data` y `items`.
+  - Si el carrito esta vacio: `400`.

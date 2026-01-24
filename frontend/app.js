@@ -788,6 +788,47 @@
             }
         }
 
+        async function handleCreateOrder() {
+            if (!authToken) {
+                navigate('/login');
+                return;
+            }
+
+            if (!cartItems.length) {
+                setCartError('Tu carrito está vacío.');
+                return;
+            }
+
+            setCartError('');
+            setCartMessage('');
+            try {
+                const response = await fetch(buildApiUrl('/api/v1/orders'), {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                });
+
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        clearSession();
+                        throw new Error('Sesión expirada.');
+                    }
+
+                    throw new Error(getErrorMessage(payload, 'No se pudo crear la orden.'));
+                }
+
+                const orderId = payload.data && payload.data.id ? payload.data.id : null;
+                setCartItems([]);
+                setCartMessage(
+                    orderId ? `Orden creada #${orderId}.` : 'Orden creada.'
+                );
+            } catch (err) {
+                setCartError(err.message || 'No se pudo crear la orden.');
+            }
+        }
+
         const cards = variants.map((variant) =>
             createElement(
                 'article',
@@ -1440,6 +1481,17 @@
                                     { className: 'cart__total' },
                                     `Total: ${formatPrice(cartTotal)}`
                                 ),
+                                isLoggedIn
+                                    ? createElement(
+                                        'button',
+                                        {
+                                            className: 'button button--primary',
+                                            type: 'button',
+                                            onClick: handleCreateOrder,
+                                        },
+                                        'Crear orden'
+                                    )
+                                    : null,
                                 createElement(
                                     'button',
                                     {

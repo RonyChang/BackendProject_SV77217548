@@ -81,7 +81,7 @@ async function fetchCartItems(cartId) {
             {
                 model: ProductVariant,
                 as: 'variant',
-                attributes: ['sku', 'variantName', 'priceCents'],
+                attributes: ['id', 'sku', 'variantName', 'priceCents'],
                 include: [
                     {
                         model: Product,
@@ -99,6 +99,7 @@ async function fetchCartItems(cartId) {
         const variant = plain.variant || {};
         const product = variant.product || {};
         return {
+            productVariantId: variant.id,
             sku: variant.sku,
             variantName: variant.variantName,
             priceCents: variant.priceCents,
@@ -155,8 +156,13 @@ async function deleteCartItem(cartId, variantId) {
     return item.get({ plain: true });
 }
 
-async function clearCartItems(cartId) {
-    await CartItem.destroy({ where: { cartId } });
+async function clearCartItems(cartId, transaction) {
+    const options = { where: { cartId } };
+    if (transaction) {
+        options.transaction = transaction;
+    }
+
+    await CartItem.destroy(options);
 }
 
 module.exports = {

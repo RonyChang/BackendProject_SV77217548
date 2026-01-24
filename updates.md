@@ -103,3 +103,11 @@
 - Carrito local para invitados usando `localStorage`.
 - `/cart` muestra el carrito local si no hay sesion.
 - Sincronizacion del carrito local al iniciar sesion o registrarse.
+- Si falla la sincronizacion, se conservan items locales y se muestra el error.
+
+## Version: v0.5.0
+
+### Cambios
+- Orden `pendingPayment` creada desde el carrito en `POST /api/v1/orders`.
+- Nuevas tablas `orders` y `order_items` con snapshot del carrito.
+- El carrito se limpia al crear la orden.
