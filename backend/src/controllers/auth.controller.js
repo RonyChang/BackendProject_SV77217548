@@ -100,7 +100,42 @@ async function login(req, res, next) {
     }
 }
 
+async function googleStart(req, res, next) {
+    try {
+        const url = authService.buildGoogleAuthUrl();
+        return res.redirect(url);
+    } catch (error) {
+        return next(error);
+    }
+}
+
+async function googleCallback(req, res, next) {
+    try {
+        const code = req.query.code;
+        if (!code || typeof code !== 'string') {
+            return res.status(400).json({
+                data: null,
+                message: 'Datos inválidos',
+                errors: [{ message: 'Código requerido' }],
+                meta: {},
+            });
+        }
+
+        const result = await authService.loginWithGoogle(code);
+        return res.status(200).json({
+            data: result,
+            message: 'OK',
+            errors: [],
+            meta: {},
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
 module.exports = {
     register,
     login,
+    googleStart,
+    googleCallback,
 };

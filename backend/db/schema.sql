@@ -1,11 +1,13 @@
--- Catalog schema (v0.3.1)
+-- Catalog schema (v0.3.2)
 
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
     email VARCHAR(160) NOT NULL UNIQUE,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
-    password_hash TEXT NOT NULL,
+    password_hash TEXT,
+    google_id VARCHAR(200) UNIQUE,
+    avatar_url TEXT,
     role VARCHAR(30) NOT NULL DEFAULT 'customer',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

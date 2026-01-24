@@ -48,6 +48,8 @@ Catálogo (tipos):
 Auth:
 - `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
+- `GET /api/v1/auth/google`
+- `GET /api/v1/auth/google/callback`
 
 Perfil:
 - `GET /api/v1/profile`

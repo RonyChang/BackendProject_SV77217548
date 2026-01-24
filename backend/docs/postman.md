@@ -1,4 +1,4 @@
-# Postman - Pruebas API (v0.3.1)
+# Postman - Pruebas API (v0.3.2)
 
 ## Base URL
 - Local: `http://localhost:3000`
@@ -89,6 +89,15 @@ Ejemplo:
   "password": "Demo1234"
 }
 ```
+
+### Google OAuth
+- `GET {{baseUrl}}/api/v1/auth/google`
+  - Abre el navegador y sigue el flujo de Google.
+  - Redirige a Google con la pantalla de consentimiento.
+
+- `GET {{baseUrl}}/api/v1/auth/google/callback?code=...`
+  - Responde `200` con `data.user` y `data.token` si el codigo es valido.
+  - Si falta el `code`: `400`.
 
 ### Perfil
 - `GET {{baseUrl}}/api/v1/profile`

@@ -8,6 +8,8 @@
 - `first_name`
 - `last_name`
 - `password_hash`
+- `google_id`
+- `avatar_url`
 - `role`
 - `is_active`
 - `created_at`, `updated_at`
@@ -63,3 +65,4 @@
 ## Notas
 - Los precios se guardan en centimos.
 - Ejemplo: `price_cents=4500` representa S/ 45.00.
+- `password_hash` puede ser NULL si la cuenta es solo Google.

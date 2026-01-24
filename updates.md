@@ -71,3 +71,11 @@
 - Perfil autenticado en `/api/v1/profile` (GET y PUT).
 - Nueva tabla `user_addresses` con dirección 1:1 por usuario.
 - Validaciones mínimas para teléfono y campos de dirección.
+
+## Versión: v0.3.2
+
+### Cambios
+- Login con Google OAuth en `/api/v1/auth/google` y callback `/api/v1/auth/google/callback`.
+- Vinculación de cuentas por email existente.
+- `users` ahora guarda `google_id` y `avatar_url` y permite `password_hash` NULL.
+- Frontend con botón de acceso Google.

@@ -39,6 +39,11 @@
             loadVariants();
         }, []);
 
+        function handleGoogleLogin() {
+            const url = buildApiUrl('/api/v1/auth/google');
+            window.open(url, '_blank', 'noopener');
+        }
+
         async function loadVariants() {
             setStatus('loading');
             setError('');
@@ -47,13 +52,13 @@
                     buildApiUrl('/api/v1/catalog/variants?page=1&pageSize=12')
                 );
                 if (!response.ok) {
-                    throw new Error('No se pudo cargar el catalogo de productos.');
+                    throw new Error('No se pudo cargar el catálogo de productos.');
                 }
 
                 const payload = await response.json();
                 setVariants(Array.isArray(payload.data) ? payload.data : []);
             } catch (err) {
-                setError(err.message || 'Error al cargar el catalogo.');
+                setError(err.message || 'Error al cargar el catálogo.');
             } finally {
                 setStatus('idle');
             }
@@ -105,15 +110,38 @@
             'main',
             { className: 'app' },
             createElement('h1', null, 'Spacegurumis'),
-            createElement('p', { className: 'lead' }, 'Catalogo de productos disponibles.'),
+            createElement('p', { className: 'lead' }, 'Catálogo de productos disponibles.'),
+            createElement(
+                'section',
+                { className: 'auth' },
+                createElement(
+                    'div',
+                    null,
+                    createElement('h2', { className: 'auth__title' }, 'Acceso'),
+                    createElement(
+                        'p',
+                        { className: 'auth__note' },
+                        'El login con Google abre otra pestaña y devuelve el token en JSON.'
+                    )
+                ),
+                createElement(
+                    'button',
+                    {
+                        className: 'auth__button',
+                        type: 'button',
+                        onClick: handleGoogleLogin,
+                    },
+                    'Iniciar sesión con Google'
+                )
+            ),
             error
                 ? createElement('p', { className: 'status status--error' }, error)
                 : null,
             status === 'loading'
-                ? createElement('p', { className: 'status' }, 'Cargando catalogo...')
+                ? createElement('p', { className: 'status' }, 'Cargando catálogo...')
                 : null,
             status === 'idle' && !variants.length
-                ? createElement('p', { className: 'status' }, 'No hay productos registradas.')
+                ? createElement('p', { className: 'status' }, 'No hay productos registrados.')
                 : null,
             createElement('section', { className: 'catalog' }, cards),
             createElement(
@@ -143,7 +171,7 @@
                             null,
                             selected.product && selected.product.description
                                 ? selected.product.description
-                                : 'Sin descripcion'
+                                : 'Sin descripción'
                         )
                     )
                     : createElement(

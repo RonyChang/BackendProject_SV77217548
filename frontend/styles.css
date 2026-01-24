@@ -37,6 +37,44 @@ p {
     color: #4b5563;
 }
 
+.auth {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+}
+
+.auth__title {
+    margin: 0 0 6px;
+    font-size: 1.2rem;
+}
+
+.auth__note {
+    margin: 0;
+    color: #4b5563;
+    font-size: 0.95rem;
+}
+
+.auth__button {
+    padding: 10px 14px;
+    border: 1px solid #1f2937;
+    border-radius: 8px;
+    background: #111827;
+    color: #f9fafb;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.auth__button:hover {
+    background: #1f2937;
+}
+
 .status {
     margin: 16px 0;
     color: #6b7280;
