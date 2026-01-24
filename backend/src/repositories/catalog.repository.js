@@ -137,7 +137,7 @@ async function fetchActiveProductsCount(filters) {
         where: productWhere,
         include: [categoryInclude],
         distinct: true,
-        col: 'Product.id',
+        col: 'id',
     });
 
     return total || 0;
@@ -226,7 +226,7 @@ async function fetchActiveVariantsCount(filters) {
             },
         ],
         distinct: true,
-        col: 'ProductVariant.id',
+        col: 'id',
     });
 
     return total || 0;
