@@ -820,10 +820,18 @@
                 }
 
                 const orderId = payload.data && payload.data.id ? payload.data.id : null;
+                const total = payload.data && Number(payload.data.total);
+                const shippingCost = payload.data && Number(payload.data.shippingCost);
+                let message = orderId ? `Orden creada #${orderId}.` : 'Orden creada.';
+                if (Number.isFinite(total)) {
+                    const shippingLabel = Number.isFinite(shippingCost)
+                        ? ` (envio ${formatPrice(shippingCost)})`
+                        : '';
+                    message = `${message} Total: ${formatPrice(total)}${shippingLabel}`;
+                }
+
                 setCartItems([]);
-                setCartMessage(
-                    orderId ? `Orden creada #${orderId}.` : 'Orden creada.'
-                );
+                setCartMessage(message);
             } catch (err) {
                 setCartError(err.message || 'No se pudo crear la orden.');
             }

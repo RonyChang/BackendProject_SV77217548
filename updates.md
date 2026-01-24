@@ -111,3 +111,11 @@
 - Orden `pendingPayment` creada desde el carrito en `POST /api/v1/orders`.
 - Nuevas tablas `orders` y `order_items` con snapshot del carrito.
 - El carrito se limpia al crear la orden.
+
+## Version: v0.5.1
+
+### Cambios
+- Calculo de envio segun distrito del perfil.
+- `orders` ahora guarda `shipping_cost_cents`.
+- Total de orden incluye subtotal + envio.
+- Se requiere direccion completa para crear la orden.

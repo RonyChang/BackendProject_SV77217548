@@ -289,6 +289,11 @@ const Order = sequelize.define('Order', {
         allowNull: false,
         defaultValue: 0,
     },
+    shippingCostCents: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+    },
 }, {
     tableName: 'orders',
 });

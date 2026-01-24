@@ -13,6 +13,15 @@ async function createOrder(req, res, next) {
         }
 
         const result = await orderService.createOrder(userId);
+        if (result.error === 'address') {
+            return res.status(400).json({
+                data: null,
+                message: 'Direccion requerida',
+                errors: [{ message: 'Direccion requerida' }],
+                meta: {},
+            });
+        }
+
         if (result.error === 'empty') {
             return res.status(400).json({
                 data: null,

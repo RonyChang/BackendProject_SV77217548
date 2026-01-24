@@ -1,4 +1,4 @@
-# Postman - Pruebas API (v0.5.0)
+# Postman - Pruebas API (v0.5.1)
 
 ## Base URL
 - Local: `http://localhost:3000`
@@ -168,5 +168,7 @@ Ejemplo:
 - `POST {{baseUrl}}/api/v1/orders`
   - Requiere `Authorization: Bearer {{token}}`.
   - Crea una orden `pendingPayment` desde el carrito.
-  - Esperado: `201` con `data` y `items`.
+  - Requiere direccion completa en el perfil.
+  - Esperado: `201` con `data`, `items`, `shippingCost` y `total`.
   - Si el carrito esta vacio: `400`.
+  - Si falta direccion: `400`.

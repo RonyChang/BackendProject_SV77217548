@@ -46,6 +46,7 @@
 - `order_status`
 - `payment_status`
 - `subtotal_cents`
+- `shipping_cost_cents`
 - `total_cents`
 - `created_at`, `updated_at`
 

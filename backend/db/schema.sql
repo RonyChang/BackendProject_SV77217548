@@ -1,4 +1,4 @@
--- Catalog schema (v0.5.0)
+-- Catalog schema (v0.5.1)
 
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS orders (
     order_status VARCHAR(40) NOT NULL DEFAULT 'pendingPayment',
     payment_status VARCHAR(40) NOT NULL DEFAULT 'pending',
     subtotal_cents INTEGER NOT NULL DEFAULT 0,
+    shipping_cost_cents INTEGER NOT NULL DEFAULT 0,
     total_cents INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

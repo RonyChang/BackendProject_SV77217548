@@ -1,6 +1,7 @@
 const { sequelize } = require('../models');
 const cartRepository = require('../repositories/cart.repository');
 const orderRepository = require('../repositories/order.repository');
+const profileRepository = require('../repositories/profile.repository');
 
 function centsToSoles(value) {
     if (value === null || value === undefined) {
@@ -15,6 +16,41 @@ function centsToSoles(value) {
     return Number((cents / 100).toFixed(2));
 }
 
+function parseSoles(value, fallback) {
+    const parsed = Number(value);
+    if (Number.isNaN(parsed)) {
+        return fallback;
+    }
+
+    return parsed;
+}
+
+function solesToCents(value) {
+    return Math.round(Number(value) * 100);
+}
+
+function normalizeDistrict(value) {
+    return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function resolveShippingCostCents(address) {
+    const district = normalizeDistrict(address && address.district);
+    if (!district) {
+        return null;
+    }
+
+    const defaultSoles = parseSoles(process.env.DEFAULT_SHIPPING_COST, 10);
+    const highSoles = parseSoles(process.env.HIGH_SHIPPING_COST, 15);
+    const highDistricts = (process.env.HIGH_SHIPPING_DISTRICTS || '')
+        .split(',')
+        .map(normalizeDistrict)
+        .filter(Boolean);
+    const isHigh = highDistricts.includes(district);
+    const costSoles = isHigh ? highSoles : defaultSoles;
+
+    return Math.max(solesToCents(costSoles), 0);
+}
+
 function mapOrderItems(items) {
     return items.map((item) => ({
         sku: item.sku,
@@ -26,6 +62,16 @@ function mapOrderItems(items) {
 }
 
 async function createOrder(userId) {
+    const address = await profileRepository.findAddressByUserId(userId);
+    if (!address || !address.district) {
+        return { error: 'address' };
+    }
+
+    const shippingCostCents = resolveShippingCostCents(address);
+    if (shippingCostCents === null) {
+        return { error: 'address' };
+    }
+
     const cartId = await cartRepository.fetchCartIdByUserId(userId);
     if (!cartId) {
         return { error: 'empty' };
@@ -40,7 +86,7 @@ async function createOrder(userId) {
         (total, item) => total + (Number(item.priceCents) || 0) * item.quantity,
         0
     );
-    const totalCents = subtotalCents;
+    const totalCents = subtotalCents + shippingCostCents;
 
     const order = await sequelize.transaction(async (transaction) => {
         const createdOrder = await orderRepository.createOrder(
@@ -48,6 +94,7 @@ async function createOrder(userId) {
                 userId,
                 subtotalCents,
                 totalCents,
+                shippingCostCents,
                 items,
             },
             transaction
@@ -62,6 +109,7 @@ async function createOrder(userId) {
         orderStatus: order.orderStatus,
         paymentStatus: order.paymentStatus,
         subtotal: centsToSoles(order.subtotalCents),
+        shippingCost: centsToSoles(order.shippingCostCents),
         total: centsToSoles(order.totalCents),
         items: mapOrderItems(items),
     };

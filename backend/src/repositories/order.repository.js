@@ -1,6 +1,9 @@
 const { Order, OrderItem } = require('../models');
 
-async function createOrder({ userId, subtotalCents, totalCents, items }, transaction) {
+async function createOrder(
+    { userId, subtotalCents, totalCents, shippingCostCents, items },
+    transaction
+) {
     const order = await Order.create(
         {
             userId,
@@ -8,6 +11,7 @@ async function createOrder({ userId, subtotalCents, totalCents, items }, transac
             paymentStatus: 'pending',
             subtotalCents,
             totalCents,
+            shippingCostCents,
         },
         { transaction }
     );
