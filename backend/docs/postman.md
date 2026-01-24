@@ -3,6 +3,7 @@
 ## Base URL
 - Local: `http://localhost:3000`
 - Produccion: `https://api.spacegurumis.lat`
+- Frontend: `https://spacegurumis.lat`
 
 ## Endpoints disponibles
 
