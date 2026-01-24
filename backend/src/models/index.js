@@ -259,6 +259,80 @@ const CartItem = sequelize.define('CartItem', {
     tableName: 'cart_items',
 });
 
+const Order = sequelize.define('Order', {
+    id: {
+        type: DataTypes.BIGINT,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    userId: {
+        type: DataTypes.BIGINT,
+        allowNull: false,
+    },
+    orderStatus: {
+        type: DataTypes.STRING(40),
+        allowNull: false,
+        defaultValue: 'pendingPayment',
+    },
+    paymentStatus: {
+        type: DataTypes.STRING(40),
+        allowNull: false,
+        defaultValue: 'pending',
+    },
+    subtotalCents: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+    },
+    totalCents: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+    },
+}, {
+    tableName: 'orders',
+});
+
+const OrderItem = sequelize.define('OrderItem', {
+    id: {
+        type: DataTypes.BIGINT,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    orderId: {
+        type: DataTypes.BIGINT,
+        allowNull: false,
+    },
+    productVariantId: {
+        type: DataTypes.BIGINT,
+        allowNull: false,
+    },
+    sku: {
+        type: DataTypes.STRING(80),
+        allowNull: false,
+    },
+    productName: {
+        type: DataTypes.STRING(160),
+        allowNull: false,
+    },
+    variantName: {
+        type: DataTypes.STRING(120),
+        allowNull: true,
+    },
+    priceCents: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+    },
+    quantity: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 1,
+    },
+}, {
+    tableName: 'order_items',
+});
+
 User.hasOne(UserAddress, { foreignKey: 'userId', as: 'address' });
 UserAddress.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
@@ -278,6 +352,13 @@ Cart.hasMany(CartItem, { foreignKey: 'cartId', as: 'items' });
 CartItem.belongsTo(Cart, { foreignKey: 'cartId', as: 'cart' });
 CartItem.belongsTo(ProductVariant, { foreignKey: 'productVariantId', as: 'variant' });
 
+User.hasMany(Order, { foreignKey: 'userId', as: 'orders' });
+Order.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+Order.hasMany(OrderItem, { foreignKey: 'orderId', as: 'items' });
+OrderItem.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
+OrderItem.belongsTo(ProductVariant, { foreignKey: 'productVariantId', as: 'variant' });
+
 module.exports = {
     sequelize,
     User,
@@ -288,4 +369,6 @@ module.exports = {
     Inventory,
     Cart,
     CartItem,
+    Order,
+    OrderItem,
 };

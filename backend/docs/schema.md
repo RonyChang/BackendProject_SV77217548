@@ -40,6 +40,26 @@
 - `quantity`
 - `created_at`, `updated_at`
 
+### orders
+- `id` (PK)
+- `user_id` (FK -> users.id)
+- `order_status`
+- `payment_status`
+- `subtotal_cents`
+- `total_cents`
+- `created_at`, `updated_at`
+
+### order_items
+- `id` (PK)
+- `order_id` (FK -> orders.id)
+- `product_variant_id` (FK -> product_variants.id)
+- `sku`
+- `product_name`
+- `variant_name`
+- `price_cents`
+- `quantity`
+- `created_at`, `updated_at`
+
 ### categories
 - `id` (PK)
 - `name`
