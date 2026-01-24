@@ -49,5 +49,10 @@
 ### Cambios
 - Precios almacenados en centimos en `product_variants.price_cents`.
 - La API convierte y responde precios en soles.
+
+## Version: v0.2.3
+
+### Cambios
 - Nuevo listado y detalle por variante en `/api/v1/catalog/variants` y `/api/v1/catalog/variants/:sku`.
 - Filtros y paginacion aplican al listado de variantes.
+- Listado de tipos en `/api/v1/catalog/products` ahora incluye `variantsCount`.

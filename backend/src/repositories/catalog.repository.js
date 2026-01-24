@@ -89,14 +89,13 @@ async function fetchActiveProducts(filters, pagination) {
             p.id,
             p.name,
             p.slug,
-            pp.min_price_cents AS "priceCents",
-            pp.variants_count AS "variantsCount",
+            COALESCE(pp.variants_count, 0) AS "variantsCount",
             c.id AS "categoryId",
             c.name AS "categoryName",
             c.slug AS "categorySlug"
         FROM products p
         JOIN categories c ON c.id = p.category_id
-        JOIN (
+        LEFT JOIN (
             SELECT product_id, MIN(price_cents) AS min_price_cents, COUNT(*)::int AS variants_count
             FROM product_variants
             GROUP BY product_id
@@ -116,7 +115,7 @@ async function fetchActiveProductsCount(filters) {
         SELECT COUNT(*)::int AS total
         FROM products p
         JOIN categories c ON c.id = p.category_id
-        JOIN (
+        LEFT JOIN (
             SELECT product_id, MIN(price_cents) AS min_price_cents, COUNT(*)::int AS variants_count
             FROM product_variants
             GROUP BY product_id

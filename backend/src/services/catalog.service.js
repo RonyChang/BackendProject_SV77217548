@@ -32,7 +32,6 @@ async function listProducts(filters, pagination) {
         id: row.id,
         name: row.name,
         slug: row.slug,
-        price: centsToSoles(row.priceCents),
         variantsCount: row.variantsCount,
         category: {
             id: row.categoryId,
