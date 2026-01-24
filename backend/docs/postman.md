@@ -1,8 +1,9 @@
-# Postman - Pruebas API (v0.2.3)
+# Postman - Pruebas API (v0.3.2)
 
 ## Base URL
 - Local: `http://localhost:3000`
 - Produccion: `https://api.spacegurumis.lat`
+- Frontend: `https://spacegurumis.lat`
 
 ## Endpoints disponibles
 
@@ -62,7 +63,7 @@ Ejemplo:
 ### Auth
 - `POST {{baseUrl}}/api/v1/auth/register`
   - Body (JSON):
-    - `email`, `firstName`, `lastName`, `password`
+    - `email`, `password` (opcional: `firstName`, `lastName`)
   - Esperado: `201` con `data.user` y `data.token`.
   - Si el email ya existe: `409`.
 
@@ -70,8 +71,6 @@ Ejemplo:
 ```json
 {
   "email": "demo@spacegurumis.lat",
-  "firstName": "Demo",
-  "lastName": "User",
   "password": "Demo1234"
 }
 ```
@@ -87,5 +86,45 @@ Ejemplo:
 {
   "email": "demo@spacegurumis.lat",
   "password": "Demo1234"
+}
+```
+
+### Google OAuth
+- `GET {{baseUrl}}/api/v1/auth/google`
+  - Abre el navegador y sigue el flujo de Google.
+  - Redirige a Google con la pantalla de consentimiento.
+
+- `GET {{baseUrl}}/api/v1/auth/google/callback?code=...`
+  - Si `FRONTEND_BASE_URL` está configurado, redirige a `{{frontendUrl}}/login#token=...`.
+  - Si no hay `FRONTEND_BASE_URL`, responde `200` con `data.user` y `data.token`.
+  - Si falta el `code`: `400` o redirección con error.
+
+### Perfil
+- `GET {{baseUrl}}/api/v1/profile`
+  - Requiere `Authorization: Bearer {{token}}`.
+  - Esperado: `200` con `data.user` y `data.address` (o `null`).
+  - Sin token: `401`.
+
+- `PUT {{baseUrl}}/api/v1/profile`
+  - Requiere `Authorization: Bearer {{token}}`.
+  - Actualiza nombre y direccion (upsert).
+  - Esperado: `200` con `data.user` y `data.address`.
+
+Ejemplo:
+```json
+{
+  "firstName": "Rony",
+  "lastName": "Chang",
+  "address": {
+    "receiverName": "Rony Chang",
+    "phone": "987654321",
+    "addressLine1": "Av. Principal 123",
+    "addressLine2": "Depto 4B",
+    "country": "PE",
+    "city": "Lima",
+    "district": "Miraflores",
+    "postalCode": "15074",
+    "reference": "Edificio azul"
+  }
 }
 ```

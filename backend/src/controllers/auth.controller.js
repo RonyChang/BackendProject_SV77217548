@@ -16,19 +16,19 @@ function validateRegisterPayload(payload) {
     const errors = [];
 
     if (!isValidEmail(payload.email)) {
-        errors.push('Email invalido');
+        errors.push('Email inválido');
     }
 
-    if (!isNonEmptyString(payload.firstName)) {
-        errors.push('Nombre requerido');
+    if (payload.firstName && !isNonEmptyString(payload.firstName)) {
+        errors.push('Nombre inválido');
     }
 
-    if (!isNonEmptyString(payload.lastName)) {
-        errors.push('Apellido requerido');
+    if (payload.lastName && !isNonEmptyString(payload.lastName)) {
+        errors.push('Apellido inválido');
     }
 
     if (!isNonEmptyString(payload.password) || payload.password.trim().length < 6) {
-        errors.push('Contraseña minima de 6 caracteres');
+        errors.push('Contraseña mínima de 6 caracteres');
     }
 
     return errors;
@@ -38,7 +38,7 @@ function validateLoginPayload(payload) {
     const errors = [];
 
     if (!isValidEmail(payload.email)) {
-        errors.push('Email invalido');
+        errors.push('Email inválido');
     }
 
     if (!isNonEmptyString(payload.password)) {
@@ -56,7 +56,7 @@ async function register(req, res, next) {
         if (errors.length) {
             return res.status(400).json({
                 data: null,
-                message: 'Datos invalidos',
+                message: 'Datos inválidos',
                 errors: errors.map((message) => ({ message })),
                 meta: {},
             });
@@ -82,7 +82,7 @@ async function login(req, res, next) {
         if (errors.length) {
             return res.status(400).json({
                 data: null,
-                message: 'Datos invalidos',
+                message: 'Datos inválidos',
                 errors: errors.map((message) => ({ message })),
                 meta: {},
             });
@@ -100,7 +100,65 @@ async function login(req, res, next) {
     }
 }
 
+async function googleStart(req, res, next) {
+    try {
+        const url = authService.buildGoogleAuthUrl();
+        return res.redirect(url);
+    } catch (error) {
+        return next(error);
+    }
+}
+
+async function googleCallback(req, res, next) {
+    try {
+        const frontendBaseUrl = process.env.FRONTEND_BASE_URL;
+        const code = req.query.code;
+        if (!code || typeof code !== 'string') {
+            if (frontendBaseUrl) {
+                const url = new URL('/login', frontendBaseUrl);
+                url.hash = 'error=Codigo%20requerido';
+                return res.redirect(url.toString());
+            }
+
+            return res.status(400).json({
+                data: null,
+                message: 'Datos inv?lidos',
+                errors: [{ message: 'C?digo requerido' }],
+                meta: {},
+            });
+        }
+
+        const result = await authService.loginWithGoogle(code);
+        if (frontendBaseUrl) {
+            const url = new URL('/login', frontendBaseUrl);
+            url.hash = `token=${encodeURIComponent(result.token)}`;
+            return res.redirect(url.toString());
+        }
+
+        return res.status(200).json({
+            data: result,
+            message: 'OK',
+            errors: [],
+            meta: {},
+        });
+    } catch (error) {
+        console.error('Google OAuth error:', error && error.message ? error.message : error);
+        if (process.env.FRONTEND_BASE_URL) {
+            const message = error && error.message
+                ? error.message
+                : 'No se pudo iniciar sesion con Google';
+            const url = new URL('/login', process.env.FRONTEND_BASE_URL);
+            url.hash = `error=${encodeURIComponent(message)}`;
+            return res.redirect(url.toString());
+        }
+
+        return next(error);
+    }
+}
+
 module.exports = {
     register,
     login,
+    googleStart,
+    googleCallback,
 };

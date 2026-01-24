@@ -8,8 +8,24 @@
 - `first_name`
 - `last_name`
 - `password_hash`
+- `google_id`
+- `avatar_url`
 - `role`
 - `is_active`
+- `created_at`, `updated_at`
+
+### user_addresses
+- `id` (PK)
+- `user_id` (unique, FK -> users.id)
+- `receiver_name`
+- `phone`
+- `address_line1`
+- `address_line2`
+- `country`
+- `city`
+- `district`
+- `postal_code`
+- `reference`
 - `created_at`, `updated_at`
 
 ### categories
@@ -49,3 +65,6 @@
 ## Notas
 - Los precios se guardan en centimos.
 - Ejemplo: `price_cents=4500` representa S/ 45.00.
+- `password_hash` puede ser NULL si la cuenta es solo Google.
+- `google_id` es unico y puede ser NULL si la cuenta es por email.
+- `avatar_url` es opcional y viene de Google si esta disponible.

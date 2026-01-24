@@ -1,13 +1,31 @@
--- Catalog schema (v0.3.0)
+-- Catalog schema (v0.3.2)
 
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
     email VARCHAR(160) NOT NULL UNIQUE,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
-    password_hash TEXT NOT NULL,
+    password_hash TEXT,
+    google_id VARCHAR(200) UNIQUE,
+    avatar_url TEXT,
     role VARCHAR(30) NOT NULL DEFAULT 'customer',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS user_addresses (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    receiver_name VARCHAR(160) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    address_line1 VARCHAR(200) NOT NULL,
+    address_line2 VARCHAR(200),
+    country VARCHAR(80) NOT NULL,
+    city VARCHAR(120) NOT NULL,
+    district VARCHAR(120) NOT NULL,
+    postal_code VARCHAR(20),
+    reference TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -55,6 +73,8 @@ CREATE TABLE IF NOT EXISTS inventory (
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
+CREATE INDEX IF NOT EXISTS idx_user_addresses_user_id ON user_addresses(user_id);
 CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
 CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
 CREATE INDEX IF NOT EXISTS idx_variants_product_id ON product_variants(product_id);

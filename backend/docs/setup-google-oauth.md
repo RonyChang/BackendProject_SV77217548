@@ -17,7 +17,5 @@
 GOOGLE_CLIENT_ID=changeme
 GOOGLE_CLIENT_SECRET=changeme
 GOOGLE_CALLBACK_URL=http://localhost:3000/api/v1/auth/google/callback
+FRONTEND_BASE_URL=http://localhost:5173
 ```
-
-## Notas
-- La URL de callback debe coincidir con la ruta real del backend.
