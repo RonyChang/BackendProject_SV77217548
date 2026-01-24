@@ -90,3 +90,9 @@
 - Endpoints CRUD de carrito en `/api/v1/cart` y `/api/v1/cart/items`.
 - Frontend agrega pagina `/cart` y boton de carrito en el header.
 - Acciones basicas: agregar, actualizar cantidad, eliminar y vaciar carrito.
+
+## Version: v0.4.1
+
+### Cambios
+- Carrito ahora devuelve `summary` con subtotal y total de items.
+- Validacion de stock al agregar o actualizar cantidades (409 si supera stock).

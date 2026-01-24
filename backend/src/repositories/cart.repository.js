@@ -3,6 +3,7 @@ const {
     CartItem,
     Product,
     ProductVariant,
+    Inventory,
 } = require('../models');
 
 async function fetchCartIdByUserId(userId) {
@@ -38,6 +39,12 @@ async function fetchVariantBySku(sku) {
                 as: 'product',
                 attributes: ['name'],
             },
+            {
+                model: Inventory,
+                as: 'inventory',
+                attributes: ['stock', 'reserved'],
+                required: false,
+            },
         ],
     });
 
@@ -52,7 +59,18 @@ async function fetchVariantBySku(sku) {
         variantName: plain.variantName,
         priceCents: plain.priceCents,
         productName: plain.product ? plain.product.name : null,
+        stock: plain.inventory ? plain.inventory.stock : 0,
+        reserved: plain.inventory ? plain.inventory.reserved : 0,
     };
+}
+
+async function fetchCartItemQuantity(cartId, variantId) {
+    const item = await CartItem.findOne({
+        where: { cartId, productVariantId: variantId },
+        attributes: ['quantity'],
+    });
+
+    return item ? item.quantity : 0;
 }
 
 async function fetchCartItems(cartId) {
@@ -146,6 +164,7 @@ module.exports = {
     ensureCart,
     fetchVariantBySku,
     fetchCartItems,
+    fetchCartItemQuantity,
     upsertCartItem,
     updateCartItemQuantity,
     deleteCartItem,
