@@ -19,12 +19,12 @@ function validateRegisterPayload(payload) {
         errors.push('Email inválido');
     }
 
-    if (!isNonEmptyString(payload.firstName)) {
-        errors.push('Nombre requerido');
+    if (payload.firstName && !isNonEmptyString(payload.firstName)) {
+        errors.push('Nombre inválido');
     }
 
-    if (!isNonEmptyString(payload.lastName)) {
-        errors.push('Apellido requerido');
+    if (payload.lastName && !isNonEmptyString(payload.lastName)) {
+        errors.push('Apellido inválido');
     }
 
     if (!isNonEmptyString(payload.password) || payload.password.trim().length < 6) {

@@ -17,6 +17,14 @@ function normalizeName(value) {
     return value.trim();
 }
 
+function normalizeOptionalName(value, fallback) {
+    if (typeof value !== 'string' || !value.trim()) {
+        return fallback;
+    }
+
+    return value.trim();
+}
+
 function buildUserResponse(user) {
     return {
         id: user.id,
@@ -141,10 +149,12 @@ async function registerUser({ email, firstName, lastName, password }) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const safeFirstName = normalizeOptionalName(firstName, '');
+    const safeLastName = normalizeOptionalName(lastName, '');
     const newUser = await authRepository.createUser({
         email: normalizedEmail,
-        firstName: normalizeName(firstName),
-        lastName: normalizeName(lastName),
+        firstName: safeFirstName,
+        lastName: safeLastName,
         passwordHash,
         role: 'customer',
         googleId: null,

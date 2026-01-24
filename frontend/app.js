@@ -78,6 +78,26 @@
         return fallback;
     }
 
+    function resolveView(pathname) {
+        if (!pathname || pathname === '/') {
+            return 'home';
+        }
+
+        if (pathname === '/login') {
+            return 'login';
+        }
+
+        if (pathname === '/register') {
+            return 'register';
+        }
+
+        if (pathname === '/profile') {
+            return 'profile';
+        }
+
+        return 'home';
+    }
+
     function App() {
         const [variants, setVariants] = useState([]);
         const [status, setStatus] = useState('idle');
@@ -89,26 +109,22 @@
         const [authToken, setAuthToken] = useState(
             () => window.localStorage.getItem('authToken') || ''
         );
-        const [authUser, setAuthUser] = useState(null);
-
         const [loginForm, setLoginForm] = useState({ email: '', password: '' });
         const [loginStatus, setLoginStatus] = useState('idle');
         const [loginError, setLoginError] = useState('');
 
         const [registerForm, setRegisterForm] = useState({
             email: '',
-            firstName: '',
-            lastName: '',
             password: '',
         });
         const [registerStatus, setRegisterStatus] = useState('idle');
         const [registerError, setRegisterError] = useState('');
 
-        const [profile, setProfile] = useState(null);
         const [profileForm, setProfileForm] = useState(buildEmptyProfileForm());
         const [profileStatus, setProfileStatus] = useState('idle');
         const [profileError, setProfileError] = useState('');
         const [profileMessage, setProfileMessage] = useState('');
+        const [view, setView] = useState(resolveView(window.location.pathname));
 
         const isLoggedIn = Boolean(authToken);
 
@@ -117,14 +133,38 @@
         }, []);
 
         useEffect(() => {
+            const handlePopState = () => {
+                setView(resolveView(window.location.pathname));
+            };
+
+            window.addEventListener('popstate', handlePopState);
+            return () => window.removeEventListener('popstate', handlePopState);
+        }, []);
+
+        useEffect(() => {
             if (authToken) {
                 loadProfile();
             } else {
-                setAuthUser(null);
-                setProfile(null);
                 setProfileForm(buildEmptyProfileForm());
             }
         }, [authToken]);
+
+        function navigate(path) {
+            if (!path) {
+                return;
+            }
+
+            if (window.location.pathname !== path) {
+                window.history.pushState({}, '', path);
+            }
+
+            setView(resolveView(path));
+        }
+
+        function handleNavClick(event, path) {
+            event.preventDefault();
+            navigate(path);
+        }
 
         function handleGoogleLogin() {
             const url = buildApiUrl('/api/v1/auth/google');
@@ -138,15 +178,14 @@
 
             window.localStorage.setItem('authToken', data.token);
             setAuthToken(data.token);
-            setAuthUser(data.user || null);
+            navigate('/profile');
         }
 
         function clearSession() {
             window.localStorage.removeItem('authToken');
             setAuthToken('');
-            setAuthUser(null);
-            setProfile(null);
             setProfileForm(buildEmptyProfileForm());
+            navigate('/');
         }
 
         async function loadVariants() {
@@ -231,8 +270,6 @@
                     },
                     body: JSON.stringify({
                         email: registerForm.email,
-                        firstName: registerForm.firstName,
-                        lastName: registerForm.lastName,
                         password: registerForm.password,
                     }),
                 });
@@ -245,7 +282,7 @@
                 }
 
                 saveSession(payload.data);
-                setRegisterForm({ email: '', firstName: '', lastName: '', password: '' });
+                setRegisterForm({ email: '', password: '' });
             } catch (err) {
                 setRegisterError(err.message || 'No se pudo registrar el usuario.');
             } finally {
@@ -278,8 +315,6 @@
                     throw new Error(getErrorMessage(payload, 'No se pudo cargar el perfil.'));
                 }
 
-                setProfile(payload.data || null);
-                setAuthUser(payload.data ? payload.data.user : null);
                 setProfileForm(buildProfileForm(payload.data));
             } catch (err) {
                 setProfileError(err.message || 'Error al cargar el perfil.');
@@ -351,8 +386,6 @@
                     throw new Error(getErrorMessage(body, 'No se pudo guardar el perfil.'));
                 }
 
-                setProfile(body.data || null);
-                setAuthUser(body.data ? body.data.user : authUser);
                 setProfileForm(buildProfileForm(body.data));
                 setProfileMessage('Perfil actualizado correctamente.');
             } catch (err) {
@@ -386,36 +419,62 @@
             )
         );
 
+        const isLoginView = view === 'login';
+        const isRegisterView = view === 'register';
+        const isProfileView = view === 'profile';
+        const isHomeView = view === 'home';
+
         return createElement(
             'main',
             { className: 'app' },
-            createElement('h1', null, 'Spacegurumis'),
-            createElement('p', { className: 'lead' }, 'Catálogo de productos disponibles.'),
             createElement(
-                'section',
-                { className: 'auth' },
+                'header',
+                { className: 'header' },
                 createElement(
-                    'div',
-                    { className: 'auth__header' },
-                    createElement('h2', { className: 'section-title' }, 'Acceso'),
-                    createElement(
-                        'p',
-                        { className: 'section-note' },
-                        'Usa email o Google para iniciar sesión. El token se guarda en el navegador.'
-                    )
+                    'a',
+                    {
+                        className: 'header__title',
+                        href: '/',
+                        onClick: (event) => handleNavClick(event, '/'),
+                    },
+                    'Spacegurumis'
                 ),
                 createElement(
-                    'div',
-                    { className: 'auth__actions' },
-                    createElement(
-                        'button',
-                        {
-                            className: 'button button--dark',
-                            type: 'button',
-                            onClick: handleGoogleLogin,
-                        },
-                        'Iniciar sesión con Google'
-                    ),
+                    'nav',
+                    { className: 'nav' },
+                    !isLoggedIn
+                        ? createElement(
+                            'button',
+                            {
+                                className: 'button button--ghost',
+                                type: 'button',
+                                onClick: () => navigate('/register'),
+                            },
+                            'Registrarse'
+                        )
+                        : null,
+                    !isLoggedIn
+                        ? createElement(
+                            'button',
+                            {
+                                className: 'button button--primary',
+                                type: 'button',
+                                onClick: () => navigate('/login'),
+                            },
+                            'Iniciar sesión'
+                        )
+                        : null,
+                    isLoggedIn
+                        ? createElement(
+                            'button',
+                            {
+                                className: 'button button--ghost',
+                                type: 'button',
+                                onClick: () => navigate('/profile'),
+                            },
+                            'Perfil'
+                        )
+                        : null,
                     isLoggedIn
                         ? createElement(
                             'button',
@@ -427,24 +486,52 @@
                             'Cerrar sesión'
                         )
                         : null
-                ),
-                isLoggedIn
-                    ? createElement(
-                        'p',
-                        { className: 'status' },
-                        authUser && authUser.email
-                            ? `Sesión activa: ${authUser.email}`
-                            : 'Sesión activa.'
-                    )
-                    : null,
-                !isLoggedIn
-                    ? createElement(
+                )
+            ),
+            isHomeView
+                ? createElement(
+                    'p',
+                    { className: 'lead' },
+                    'Catálogo de productos disponibles.'
+                )
+                : null,
+            isLoginView || isRegisterView
+                ? createElement(
+                    'section',
+                    { className: 'auth auth--page' },
+                    createElement(
                         'div',
-                        { className: 'auth__grid' },
+                        { className: 'auth__header' },
                         createElement(
+                            'h2',
+                            { className: 'section-title' },
+                            isLoginView ? 'Iniciar sesión' : 'Crear cuenta'
+                        ),
+                        createElement(
+                            'p',
+                            { className: 'section-note' },
+                            isLoginView
+                                ? 'Ingresa con tu email o usa Google.'
+                                : 'Completa tu nombre luego desde el perfil.'
+                        )
+                    ),
+                    createElement(
+                        'div',
+                        { className: 'auth__actions' },
+                        createElement(
+                            'button',
+                            {
+                                className: 'button button--dark',
+                                type: 'button',
+                                onClick: handleGoogleLogin,
+                            },
+                            'Continuar con Google'
+                        )
+                    ),
+                    isRegisterView
+                        ? createElement(
                             'form',
                             { className: 'form', onSubmit: handleRegister },
-                            createElement('h3', { className: 'form__title' }, 'Registro'),
                             createElement(
                                 'label',
                                 { className: 'field' },
@@ -458,38 +545,6 @@
                                         setRegisterForm((prev) => ({
                                             ...prev,
                                             email: event.target.value,
-                                        })),
-                                })
-                            ),
-                            createElement(
-                                'label',
-                                { className: 'field' },
-                                createElement('span', { className: 'field__label' }, 'Nombre'),
-                                createElement('input', {
-                                    className: 'field__input',
-                                    type: 'text',
-                                    required: true,
-                                    value: registerForm.firstName,
-                                    onChange: (event) =>
-                                        setRegisterForm((prev) => ({
-                                            ...prev,
-                                            firstName: event.target.value,
-                                        })),
-                                })
-                            ),
-                            createElement(
-                                'label',
-                                { className: 'field' },
-                                createElement('span', { className: 'field__label' }, 'Apellido'),
-                                createElement('input', {
-                                    className: 'field__input',
-                                    type: 'text',
-                                    required: true,
-                                    value: registerForm.lastName,
-                                    onChange: (event) =>
-                                        setRegisterForm((prev) => ({
-                                            ...prev,
-                                            lastName: event.target.value,
                                         })),
                                 })
                             ),
@@ -528,11 +583,10 @@
                                     ? 'Registrando...'
                                     : 'Crear cuenta'
                             )
-                        ),
-                        createElement(
+                        )
+                        : createElement(
                             'form',
                             { className: 'form', onSubmit: handleLogin },
-                            createElement('h3', { className: 'form__title' }, 'Ingreso'),
                             createElement(
                                 'label',
                                 { className: 'field' },
@@ -584,23 +638,55 @@
                                     ? 'Ingresando...'
                                     : 'Ingresar'
                             )
+                        ),
+                    createElement(
+                        'div',
+                        { className: 'auth__switch' },
+                        createElement(
+                            'span',
+                            null,
+                            isLoginView ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'
+                        ),
+                        createElement(
+                            'button',
+                            {
+                                className: 'button button--ghost',
+                                type: 'button',
+                                onClick: () =>
+                                    navigate(isLoginView ? '/register' : '/login'),
+                            },
+                            isLoginView ? 'Registrarse' : 'Iniciar sesión'
                         )
                     )
-                    : null
-            ),
-            createElement(
-                'section',
-                { className: 'profile' },
-                createElement('h2', { className: 'section-title' }, 'Perfil'),
-                !isLoggedIn
-                    ? createElement(
-                        'p',
-                        { className: 'status' },
-                        'Inicia sesión para ver y editar tu perfil.'
-                    )
-                    : createElement(
-                        'form',
-                        { className: 'form form--wide', onSubmit: handleProfileSave },
+                )
+                : null,
+            isProfileView
+                ? createElement(
+                    'section',
+                    { className: 'profile' },
+                    createElement('h2', { className: 'section-title' }, 'Perfil'),
+                    !isLoggedIn
+                        ? createElement(
+                            'div',
+                            { className: 'auth__actions' },
+                            createElement(
+                                'p',
+                                { className: 'status' },
+                                'Inicia sesión para ver tu perfil.'
+                            ),
+                            createElement(
+                                'button',
+                                {
+                                    className: 'button button--primary',
+                                    type: 'button',
+                                    onClick: () => navigate('/login'),
+                                },
+                                'Ir a login'
+                            )
+                        )
+                        : createElement(
+                            'form',
+                            { className: 'form form--wide', onSubmit: handleProfileSave },
                         createElement(
                             'div',
                             { className: 'form__grid' },
@@ -800,53 +886,72 @@
                                 : 'Guardar perfil'
                         )
                     )
-            ),
-            error
-                ? createElement('p', { className: 'status status--error' }, error)
+                )
                 : null,
-            status === 'loading'
-                ? createElement('p', { className: 'status' }, 'Cargando catálogo...')
-                : null,
-            status === 'idle' && !variants.length
-                ? createElement('p', { className: 'status' }, 'No hay productos registrados.')
-                : null,
-            createElement('section', { className: 'catalog' }, cards),
-            createElement(
-                'section',
-                { className: 'detail' },
-                createElement('h2', null, 'Detalle de producto'),
-                detailError
-                    ? createElement('p', { className: 'status status--error' }, detailError)
-                    : null,
-                detailStatus === 'loading'
-                    ? createElement('p', { className: 'status' }, 'Cargando detalle...')
-                    : null,
-                detailStatus === 'idle' && selected
-                    ? createElement(
-                        'div',
-                        { className: 'detail__content' },
-                        createElement('h3', null, getVariantTitle(selected)),
-                        createElement('p', null, `SKU: ${selected.sku}`),
-                        createElement('p', null, formatPrice(selected.price)),
-                        createElement(
+            isHomeView
+                ? createElement(
+                    'div',
+                    null,
+                    error
+                        ? createElement('p', { className: 'status status--error' }, error)
+                        : null,
+                    status === 'loading'
+                        ? createElement('p', { className: 'status' }, 'Cargando catálogo...')
+                        : null,
+                    status === 'idle' && !variants.length
+                        ? createElement(
                             'p',
-                            null,
-                            `Stock disponible: ${selected.stockAvailable}`
-                        ),
-                        createElement(
-                            'p',
-                            null,
-                            selected.product && selected.product.description
-                                ? selected.product.description
-                                : 'Sin descripción'
+                            { className: 'status' },
+                            'No hay productos registrados.'
                         )
+                        : null,
+                    createElement('section', { className: 'catalog' }, cards),
+                    createElement(
+                        'section',
+                        { className: 'detail' },
+                        createElement('h2', null, 'Detalle de producto'),
+                        detailError
+                            ? createElement(
+                                'p',
+                                { className: 'status status--error' },
+                                detailError
+                            )
+                            : null,
+                        detailStatus === 'loading'
+                            ? createElement(
+                                'p',
+                                { className: 'status' },
+                                'Cargando detalle...'
+                            )
+                            : null,
+                        detailStatus === 'idle' && selected
+                            ? createElement(
+                                'div',
+                                { className: 'detail__content' },
+                                createElement('h3', null, getVariantTitle(selected)),
+                                createElement('p', null, `SKU: ${selected.sku}`),
+                                createElement('p', null, formatPrice(selected.price)),
+                                createElement(
+                                    'p',
+                                    null,
+                                    `Stock disponible: ${selected.stockAvailable}`
+                                ),
+                                createElement(
+                                    'p',
+                                    null,
+                                    selected.product && selected.product.description
+                                        ? selected.product.description
+                                        : 'Sin descripción'
+                                )
+                            )
+                            : createElement(
+                                'p',
+                                { className: 'status' },
+                                'Selecciona un producto para ver el detalle.'
+                            )
                     )
-                    : createElement(
-                        'p',
-                        { className: 'status' },
-                        'Selecciona un producto para ver el detalle.'
-                    )
-            )
+                )
+                : null
         );
     }
 

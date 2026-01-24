@@ -62,7 +62,7 @@ Ejemplo:
 ### Auth
 - `POST {{baseUrl}}/api/v1/auth/register`
   - Body (JSON):
-    - `email`, `firstName`, `lastName`, `password`
+    - `email`, `password` (opcional: `firstName`, `lastName`)
   - Esperado: `201` con `data.user` y `data.token`.
   - Si el email ya existe: `409`.
 
@@ -70,8 +70,6 @@ Ejemplo:
 ```json
 {
   "email": "demo@spacegurumis.lat",
-  "firstName": "Demo",
-  "lastName": "User",
   "password": "Demo1234"
 }
 ```
