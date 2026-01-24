@@ -1,4 +1,4 @@
--- Catalog schema (v0.2.0)
+-- Catalog schema (v0.2.2)
 
 CREATE TABLE IF NOT EXISTS categories (
     id BIGSERIAL PRIMARY KEY,
@@ -16,7 +16,6 @@ CREATE TABLE IF NOT EXISTS products (
     name VARCHAR(160) NOT NULL,
     slug VARCHAR(160) NOT NULL UNIQUE,
     description TEXT,
-    base_price NUMERIC(10, 2) NOT NULL DEFAULT 0,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -27,7 +26,7 @@ CREATE TABLE IF NOT EXISTS product_variants (
     product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
     sku VARCHAR(80) NOT NULL UNIQUE,
     variant_name VARCHAR(120),
-    price NUMERIC(10, 2),
+    price_cents INTEGER NOT NULL DEFAULT 0,
     weight_grams INTEGER,
     size_label VARCHAR(50),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

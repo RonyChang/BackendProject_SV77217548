@@ -16,7 +16,6 @@
 - `name`
 - `slug` (unique)
 - `description`
-- `base_price`
 - `is_active`
 - `created_at`, `updated_at`
 
@@ -25,7 +24,7 @@
 - `product_id` (FK -> products.id)
 - `sku` (unique)
 - `variant_name`
-- `price`
+- `price_cents`
 - `weight_grams`
 - `size_label`
 - `created_at`, `updated_at`
@@ -37,3 +36,6 @@
 - `reserved`
 - `updated_at`
 
+## Notas
+- Los precios se guardan en centimos.
+- Ejemplo: `price_cents=4500` representa S/ 45.00.
