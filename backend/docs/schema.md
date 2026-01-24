@@ -12,6 +12,20 @@
 - `is_active`
 - `created_at`, `updated_at`
 
+### user_addresses
+- `id` (PK)
+- `user_id` (unique, FK -> users.id)
+- `receiver_name`
+- `phone`
+- `address_line1`
+- `address_line2`
+- `country`
+- `city`
+- `district`
+- `postal_code`
+- `reference`
+- `created_at`, `updated_at`
+
 ### categories
 - `id` (PK)
 - `name`

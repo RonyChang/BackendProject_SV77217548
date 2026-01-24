@@ -1,4 +1,4 @@
-# Postman - Pruebas API (v0.2.3)
+# Postman - Pruebas API (v0.3.1)
 
 ## Base URL
 - Local: `http://localhost:3000`
@@ -87,5 +87,35 @@ Ejemplo:
 {
   "email": "demo@spacegurumis.lat",
   "password": "Demo1234"
+}
+```
+
+### Perfil
+- `GET {{baseUrl}}/api/v1/profile`
+  - Requiere `Authorization: Bearer {{token}}`.
+  - Esperado: `200` con `data.user` y `data.address` (o `null`).
+  - Sin token: `401`.
+
+- `PUT {{baseUrl}}/api/v1/profile`
+  - Requiere `Authorization: Bearer {{token}}`.
+  - Actualiza nombre y direccion (upsert).
+  - Esperado: `200` con `data.user` y `data.address`.
+
+Ejemplo:
+```json
+{
+  "firstName": "Rony",
+  "lastName": "Chang",
+  "address": {
+    "receiverName": "Rony Chang",
+    "phone": "987654321",
+    "addressLine1": "Av. Principal 123",
+    "addressLine2": "Depto 4B",
+    "country": "PE",
+    "city": "Lima",
+    "district": "Miraflores",
+    "postalCode": "15074",
+    "reference": "Edificio azul"
+  }
 }
 ```

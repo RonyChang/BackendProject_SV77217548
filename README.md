@@ -1,18 +1,18 @@
 # Spacegurumis
 
 Backend y frontend de la tienda Spacegurumis. Este README describe el proyecto en general.
-El detalle por version esta en `updates.md`.
+El detalle por versión está en `updates.md`.
 
 ## Estructura
 - `backend/`: API REST (Node.js + Express).
-- `frontend/`: UI estatica.
+- `frontend/`: UI estática.
 
 ## Requisitos
 - Node.js 18+
 - npm
 - Docker Desktop (para base de datos)
 
-## Instalacion rapida
+## Instalación rápida
 Backend:
 ```bash
 cd backend
@@ -37,11 +37,11 @@ http://localhost:5173
 Salud:
 - `GET /health`
 
-Catalogo (variantes):
+Catálogo (variantes):
 - `GET /api/v1/catalog/variants`
 - `GET /api/v1/catalog/variants/:sku`
 
-Catalogo (tipos):
+Catálogo (tipos):
 - `GET /api/v1/catalog/products`
 - `GET /api/v1/catalog/products/:slug`
 
@@ -49,3 +49,6 @@ Auth:
 - `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
 
+Perfil:
+- `GET /api/v1/profile`
+- `PUT /api/v1/profile`

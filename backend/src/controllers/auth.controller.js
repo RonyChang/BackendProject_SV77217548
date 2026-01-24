@@ -16,7 +16,7 @@ function validateRegisterPayload(payload) {
     const errors = [];
 
     if (!isValidEmail(payload.email)) {
-        errors.push('Email invalido');
+        errors.push('Email inválido');
     }
 
     if (!isNonEmptyString(payload.firstName)) {
@@ -28,7 +28,7 @@ function validateRegisterPayload(payload) {
     }
 
     if (!isNonEmptyString(payload.password) || payload.password.trim().length < 6) {
-        errors.push('Contraseña minima de 6 caracteres');
+        errors.push('Contraseña mínima de 6 caracteres');
     }
 
     return errors;
@@ -38,7 +38,7 @@ function validateLoginPayload(payload) {
     const errors = [];
 
     if (!isValidEmail(payload.email)) {
-        errors.push('Email invalido');
+        errors.push('Email inválido');
     }
 
     if (!isNonEmptyString(payload.password)) {
@@ -56,7 +56,7 @@ async function register(req, res, next) {
         if (errors.length) {
             return res.status(400).json({
                 data: null,
-                message: 'Datos invalidos',
+                message: 'Datos inválidos',
                 errors: errors.map((message) => ({ message })),
                 meta: {},
             });
@@ -82,7 +82,7 @@ async function login(req, res, next) {
         if (errors.length) {
             return res.status(400).json({
                 data: null,
-                message: 'Datos invalidos',
+                message: 'Datos inválidos',
                 errors: errors.map((message) => ({ message })),
                 meta: {},
             });
