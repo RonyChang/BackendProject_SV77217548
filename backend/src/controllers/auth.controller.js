@@ -142,9 +142,13 @@ async function googleCallback(req, res, next) {
             meta: {},
         });
     } catch (error) {
+        console.error('Google OAuth error:', error && error.message ? error.message : error);
         if (process.env.FRONTEND_BASE_URL) {
+            const message = error && error.message
+                ? error.message
+                : 'No se pudo iniciar sesion con Google';
             const url = new URL('/login', process.env.FRONTEND_BASE_URL);
-            url.hash = 'error=No%20se%20pudo%20iniciar%20sesion%20con%20Google';
+            url.hash = `error=${encodeURIComponent(message)}`;
             return res.redirect(url.toString());
         }
 
