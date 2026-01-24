@@ -5,6 +5,8 @@
     const createElement = React.createElement;
 
     const apiBase = window.API_BASE_URL || 'http://localhost:3000';
+    const initialAuthToken = window.localStorage.getItem('authToken') || '';
+    const GUEST_CART_KEY = 'guestCart';
 
     function buildApiUrl(path) {
         return `${apiBase}${path}`;
@@ -78,6 +80,68 @@
         return fallback;
     }
 
+    function normalizeGuestCart(items) {
+        if (!Array.isArray(items)) {
+            return [];
+        }
+
+        return items
+            .map((item) => ({
+                sku: typeof item.sku === 'string' ? item.sku.trim() : '',
+                productName: typeof item.productName === 'string' && item.productName.trim()
+                    ? item.productName.trim()
+                    : 'Producto',
+                variantName: typeof item.variantName === 'string' && item.variantName.trim()
+                    ? item.variantName.trim()
+                    : null,
+                price: Number(item.price) || 0,
+                quantity: Number.isFinite(Number(item.quantity)) && Number(item.quantity) > 0
+                    ? Math.floor(Number(item.quantity))
+                    : 0,
+            }))
+            .filter((item) => item.sku && item.quantity > 0);
+    }
+
+    function readGuestCart() {
+        const raw = window.localStorage.getItem(GUEST_CART_KEY);
+        if (!raw) {
+            return [];
+        }
+
+        try {
+            const parsed = JSON.parse(raw);
+            return normalizeGuestCart(parsed);
+        } catch (error) {
+            return [];
+        }
+    }
+
+    function writeGuestCart(items) {
+        const normalized = normalizeGuestCart(items);
+        window.localStorage.setItem(GUEST_CART_KEY, JSON.stringify(normalized));
+        return normalized;
+    }
+
+    function clearGuestCart() {
+        window.localStorage.removeItem(GUEST_CART_KEY);
+    }
+
+    function buildGuestItem(variant) {
+        if (!variant || !variant.sku) {
+            return null;
+        }
+
+        return {
+            sku: variant.sku,
+            productName: variant.product && variant.product.name
+                ? variant.product.name
+                : 'Producto',
+            variantName: variant.variantName || null,
+            price: Number(variant.price) || 0,
+            quantity: 1,
+        };
+    }
+
     function resolveView(pathname) {
         if (!pathname || pathname === '/') {
             return 'home';
@@ -110,9 +174,7 @@
         const [detailStatus, setDetailStatus] = useState('idle');
         const [detailError, setDetailError] = useState('');
 
-        const [authToken, setAuthToken] = useState(
-            () => window.localStorage.getItem('authToken') || ''
-        );
+        const [authToken, setAuthToken] = useState(initialAuthToken);
         const [loginForm, setLoginForm] = useState({ email: '', password: '' });
         const [loginStatus, setLoginStatus] = useState('idle');
         const [loginError, setLoginError] = useState('');
@@ -129,9 +191,12 @@
         const [profileError, setProfileError] = useState('');
         const [profileMessage, setProfileMessage] = useState('');
 
-        const [cartItems, setCartItems] = useState([]);
+        const [cartItems, setCartItems] = useState(
+            () => (initialAuthToken ? [] : readGuestCart())
+        );
         const [cartStatus, setCartStatus] = useState('idle');
         const [cartError, setCartError] = useState('');
+        const [cartSyncError, setCartSyncError] = useState('');
         const [cartMessage, setCartMessage] = useState('');
         const [view, setView] = useState(resolveView(window.location.pathname));
 
@@ -163,10 +228,8 @@
             const errorParam = params.get('error');
 
             if (token) {
-                window.localStorage.setItem('authToken', token);
-                setAuthToken(token);
                 window.history.replaceState({}, '', window.location.pathname);
-                navigate('/profile');
+                saveSession({ token });
                 return;
             }
 
@@ -182,6 +245,8 @@
                 loadProfile();
             } else {
                 setProfileForm(buildEmptyProfileForm());
+                setCartItems(readGuestCart());
+                setCartSyncError('');
             }
         }, [authToken]);
 
@@ -191,9 +256,10 @@
             }
 
             if (!authToken) {
-                setCartItems([]);
+                setCartItems(readGuestCart());
                 setCartError('');
                 setCartMessage('');
+                setCartStatus('idle');
                 return;
             }
 
@@ -222,22 +288,31 @@
             window.location.assign(url);
         }
 
-        function saveSession(data) {
+        async function saveSession(data) {
             if (!data || !data.token) {
                 return;
             }
 
             window.localStorage.setItem('authToken', data.token);
             setAuthToken(data.token);
+            const syncOk = await syncGuestCart(data.token);
+            await loadCart(data.token);
+            if (!syncOk) {
+                setCartSyncError('No se pudo sincronizar el carrito local.');
+            } else {
+                setCartSyncError('');
+            }
             navigate('/profile');
         }
 
         function clearSession() {
             window.localStorage.removeItem('authToken');
+            clearGuestCart();
             setAuthToken('');
             setProfileForm(buildEmptyProfileForm());
             setCartItems([]);
             setCartError('');
+            setCartSyncError('');
             setCartMessage('');
             navigate('/');
         }
@@ -303,7 +378,7 @@
                     );
                 }
 
-                saveSession(payload.data);
+                await saveSession(payload.data);
                 setLoginForm({ email: '', password: '' });
             } catch (err) {
                 setLoginError(err.message || 'No se pudo iniciar sesión.');
@@ -335,7 +410,7 @@
                     );
                 }
 
-                saveSession(payload.data);
+                await saveSession(payload.data);
                 setRegisterForm({ email: '', password: '' });
             } catch (err) {
                 setRegisterError(err.message || 'No se pudo registrar el usuario.');
@@ -449,8 +524,55 @@
             }
         }
 
-        async function loadCart() {
-            if (!authToken) {
+        async function syncGuestCart(token) {
+            if (!token) {
+                return true;
+            }
+
+            const items = readGuestCart();
+            if (!items.length) {
+                return true;
+            }
+
+            const failedItems = [];
+            for (const item of items) {
+                try {
+                    const response = await fetch(buildApiUrl('/api/v1/cart/items'), {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({
+                            sku: item.sku,
+                            quantity: item.quantity,
+                        }),
+                    });
+
+                    if (!response.ok) {
+                        failedItems.push(item);
+                    }
+                } catch (error) {
+                    failedItems.push(item);
+                }
+            }
+
+            if (failedItems.length) {
+                writeGuestCart(failedItems);
+                return false;
+            }
+
+            clearGuestCart();
+            return true;
+        }
+
+        async function loadCart(tokenOverride) {
+            const token = tokenOverride || authToken;
+            if (!token) {
+                setCartItems(readGuestCart());
+                setCartStatus('idle');
+                setCartError('');
+                setCartMessage('');
                 return;
             }
 
@@ -460,7 +582,7 @@
             try {
                 const response = await fetch(buildApiUrl('/api/v1/cart'), {
                     headers: {
-                        Authorization: `Bearer ${authToken}`,
+                        Authorization: `Bearer ${token}`,
                     },
                 });
 
@@ -482,13 +604,31 @@
             }
         }
 
-        async function handleAddToCart(sku) {
+        async function handleAddToCart(variant) {
+            const sku = variant && variant.sku ? variant.sku : '';
             if (!sku) {
                 return;
             }
 
             if (!authToken) {
-                navigate('/login');
+                const guestItem = buildGuestItem(variant);
+                if (!guestItem) {
+                    return;
+                }
+
+                setCartError('');
+                setCartMessage('');
+                const current = readGuestCart();
+                const existing = current.find((item) => item.sku === guestItem.sku);
+                if (existing) {
+                    existing.quantity += 1;
+                } else {
+                    current.push(guestItem);
+                }
+
+                const updated = writeGuestCart(current);
+                setCartItems(updated);
+                setCartMessage('Producto agregado al carrito.');
                 return;
             }
 
@@ -525,7 +665,7 @@
         }
 
         async function handleUpdateCartQuantity(sku, quantity) {
-            if (!sku || !authToken) {
+            if (!sku) {
                 return;
             }
 
@@ -535,6 +675,17 @@
 
             setCartError('');
             setCartMessage('');
+            if (!authToken) {
+                const current = readGuestCart();
+                const updated = current.map((item) =>
+                    item.sku === sku
+                        ? { ...item, quantity: Math.floor(Number(quantity)) }
+                        : item
+                );
+                setCartItems(writeGuestCart(updated));
+                return;
+            }
+
             try {
                 const response = await fetch(buildApiUrl(`/api/v1/cart/items/${sku}`), {
                     method: 'PATCH',
@@ -564,12 +715,20 @@
         }
 
         async function handleRemoveCartItem(sku) {
-            if (!sku || !authToken) {
+            if (!sku) {
                 return;
             }
 
             setCartError('');
             setCartMessage('');
+            if (!authToken) {
+                const updated = writeGuestCart(
+                    readGuestCart().filter((item) => item.sku !== sku)
+                );
+                setCartItems(updated);
+                return;
+            }
+
             try {
                 const response = await fetch(buildApiUrl(`/api/v1/cart/items/${sku}`), {
                     method: 'DELETE',
@@ -595,12 +754,15 @@
         }
 
         async function handleClearCart() {
+            setCartError('');
+            setCartMessage('');
             if (!authToken) {
+                clearGuestCart();
+                setCartItems([]);
+                setCartMessage('Carrito vacío.');
                 return;
             }
 
-            setCartError('');
-            setCartMessage('');
             try {
                 const response = await fetch(buildApiUrl('/api/v1/cart'), {
                     method: 'DELETE',
@@ -620,7 +782,7 @@
                 }
 
                 setCartItems([]);
-                setCartMessage('Carrito vacio.');
+                setCartMessage('Carrito vacío.');
             } catch (err) {
                 setCartError(err.message || 'No se pudo vaciar el carrito.');
             }
@@ -652,7 +814,7 @@
                     {
                         className: 'button button--primary',
                         type: 'button',
-                        onClick: () => handleAddToCart(variant.sku),
+                        onClick: () => handleAddToCart(variant),
                     },
                     'Agregar al carrito'
                 )
@@ -724,6 +886,26 @@
             (total, item) => total + (Number(item.price) || 0) * item.quantity,
             0
         );
+        const cartNotice = !isLoggedIn
+            ? createElement(
+                'div',
+                { className: 'auth__actions' },
+                createElement(
+                    'p',
+                    { className: 'status' },
+                    'Carrito local. Inicia sesión para sincronizarlo.'
+                ),
+                createElement(
+                    'button',
+                    {
+                        className: 'button button--primary',
+                        type: 'button',
+                        onClick: () => navigate('/login'),
+                    },
+                    'Iniciar sesión'
+                )
+            )
+            : null;
 
         return createElement(
             'main',
@@ -1203,84 +1385,73 @@
                     'section',
                     { className: 'cart' },
                     createElement('h2', { className: 'section-title' }, 'Carrito'),
-                    !isLoggedIn
-                        ? createElement(
-                            'div',
-                            { className: 'auth__actions' },
-                            createElement(
+                    createElement(
+                        'div',
+                        { className: 'cart__content' },
+                        cartNotice,
+                        cartStatus === 'loading'
+                            ? createElement(
                                 'p',
                                 { className: 'status' },
-                                'Inicia sesion para ver tu carrito.'
-                            ),
-                            createElement(
-                                'button',
-                                {
-                                    className: 'button button--primary',
-                                    type: 'button',
-                                    onClick: () => navigate('/login'),
-                                },
-                                'Ir a login'
+                                'Cargando carrito...'
                             )
-                        )
-                        : createElement(
-                            'div',
-                            { className: 'cart__content' },
-                            cartStatus === 'loading'
-                                ? createElement(
+                            : null,
+                        cartSyncError
+                            ? createElement(
+                                'p',
+                                { className: 'status status--error' },
+                                cartSyncError
+                            )
+                            : null,
+                        cartError
+                            ? createElement(
+                                'p',
+                                { className: 'status status--error' },
+                                cartError
+                            )
+                            : null,
+                        cartMessage
+                            ? createElement(
+                                'p',
+                                { className: 'status status--success' },
+                                cartMessage
+                            )
+                            : null,
+                        cartStatus === 'idle' && !cartItems.length
+                            ? createElement(
+                                'p',
+                                { className: 'status' },
+                                'Tu carrito está vacío.'
+                            )
+                            : null,
+                        cartItems.length
+                            ? createElement(
+                                'div',
+                                { className: 'cart__list' },
+                                cartRows
+                            )
+                            : null,
+                        cartItems.length
+                            ? createElement(
+                                'div',
+                                { className: 'cart__summary' },
+                                createElement(
                                     'p',
-                                    { className: 'status' },
-                                    'Cargando carrito...'
+                                    { className: 'cart__total' },
+                                    `Total: ${formatPrice(cartTotal)}`
+                                ),
+                                createElement(
+                                    'button',
+                                    {
+                                        className: 'button button--danger',
+                                        type: 'button',
+                                        onClick: handleClearCart,
+                                    },
+                                    'Vaciar carrito'
                                 )
-                                : null,
-                            cartError
-                                ? createElement(
-                                    'p',
-                                    { className: 'status status--error' },
-                                    cartError
-                                )
-                                : null,
-                            cartMessage
-                                ? createElement(
-                                    'p',
-                                    { className: 'status status--success' },
-                                    cartMessage
-                                )
-                                : null,
-                            cartStatus === 'idle' && !cartItems.length
-                                ? createElement(
-                                    'p',
-                                    { className: 'status' },
-                                    'Tu carrito esta vacio.'
-                                )
-                                : null,
-                            cartItems.length
-                                ? createElement(
-                                    'div',
-                                    { className: 'cart__list' },
-                                    cartRows
-                                )
-                                : null,
-                            cartItems.length
-                                ? createElement(
-                                    'div',
-                                    { className: 'cart__summary' },
-                                    createElement(
-                                        'p',
-                                        { className: 'cart__total' },
-                                        `Total: ${formatPrice(cartTotal)}`
-                                    ),
-                                    createElement(
-                                        'button',
-                                        {
-                                            className: 'button button--danger',
-                                            type: 'button',
-                                            onClick: handleClearCart,
-                                        },
-                                        'Vaciar carrito'
-                                    )
-                                )
-                                : null
-                        )
+                            )
+                            : null
+                    )
                 )
                 : null,
             isHomeView
@@ -1343,7 +1514,7 @@
                                     {
                                         className: 'button button--primary',
                                         type: 'button',
-                                        onClick: () => handleAddToCart(selected.sku),
+                                        onClick: () => handleAddToCart(selected),
                                     },
                                     'Agregar al carrito'
                                 )

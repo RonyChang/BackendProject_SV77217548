@@ -81,6 +81,15 @@ async function addCartItem(req, res, next) {
             });
         }
 
+        if (result.error === 'stock') {
+            return res.status(409).json({
+                data: null,
+                message: 'Stock insuficiente',
+                errors: [{ message: 'Stock insuficiente' }],
+                meta: { available: result.available },
+            });
+        }
+
         return res.status(200).json({
             data: result,
             message: 'OK',
@@ -141,6 +150,15 @@ async function updateCartItem(req, res, next) {
                 message: 'Item no encontrado',
                 errors: [{ message: 'Item no encontrado' }],
                 meta: {},
+            });
+        }
+
+        if (result.error === 'stock') {
+            return res.status(409).json({
+                data: null,
+                message: 'Stock insuficiente',
+                errors: [{ message: 'Stock insuficiente' }],
+                meta: { available: result.available },
             });
         }
 

@@ -24,14 +24,28 @@ function mapCartItems(rows) {
     }));
 }
 
+function buildSummary(items) {
+    const totalItems = items.reduce((total, item) => total + item.quantity, 0);
+    const subtotal = items.reduce((total, item) => {
+        const price = Number(item.price) || 0;
+        return total + price * item.quantity;
+    }, 0);
+
+    return {
+        subtotal: Number(subtotal.toFixed(2)),
+        totalItems,
+    };
+}
+
 async function getCart(userId) {
     const cartId = await cartRepository.fetchCartIdByUserId(userId);
     if (!cartId) {
-        return { items: [] };
+        return { items: [], summary: buildSummary([]) };
     }
 
     const rows = await cartRepository.fetchCartItems(cartId);
-    return { items: mapCartItems(rows) };
+    const items = mapCartItems(rows);
+    return { items, summary: buildSummary(items) };
 }
 
 async function addItem(userId, sku, quantity) {
@@ -41,10 +55,18 @@ async function addItem(userId, sku, quantity) {
     }
 
     const cartId = await cartRepository.ensureCart(userId);
+    const currentQuantity = await cartRepository.fetchCartItemQuantity(cartId, variant.id);
+    const available = Math.max((variant.stock || 0) - (variant.reserved || 0), 0);
+
+    if (currentQuantity + quantity > available) {
+        return { error: 'stock', available };
+    }
+
     await cartRepository.upsertCartItem(cartId, variant.id, quantity);
 
     const rows = await cartRepository.fetchCartItems(cartId);
-    return { items: mapCartItems(rows) };
+    const items = mapCartItems(rows);
+    return { items, summary: buildSummary(items) };
 }
 
 async function updateItem(userId, sku, quantity) {
@@ -58,13 +80,19 @@ async function updateItem(userId, sku, quantity) {
         return { error: 'item' };
     }
 
+    const available = Math.max((variant.stock || 0) - (variant.reserved || 0), 0);
+    if (quantity > available) {
+        return { error: 'stock', available };
+    }
+
     const updated = await cartRepository.updateCartItemQuantity(cartId, variant.id, quantity);
     if (!updated) {
         return { error: 'item' };
     }
 
     const rows = await cartRepository.fetchCartItems(cartId);
-    return { items: mapCartItems(rows) };
+    const items = mapCartItems(rows);
+    return { items, summary: buildSummary(items) };
 }
 
 async function removeItem(userId, sku) {
@@ -84,17 +112,18 @@ async function removeItem(userId, sku) {
     }
 
     const rows = await cartRepository.fetchCartItems(cartId);
-    return { items: mapCartItems(rows) };
+    const items = mapCartItems(rows);
+    return { items, summary: buildSummary(items) };
 }
 
 async function clearCart(userId) {
     const cartId = await cartRepository.fetchCartIdByUserId(userId);
     if (!cartId) {
-        return { items: [] };
+        return { items: [], summary: buildSummary([]) };
     }
 
     await cartRepository.clearCartItems(cartId);
-    return { items: [] };
+    return { items: [], summary: buildSummary([]) };
 }
 
 module.exports = {

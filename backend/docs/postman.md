@@ -132,13 +132,15 @@ Ejemplo:
 ### Carrito
 - `GET {{baseUrl}}/api/v1/cart`
   - Requiere `Authorization: Bearer {{token}}`.
-  - Esperado: `200` con `data.items` (lista vacia si no hay carrito).
+  - Esperado: `200` con `data.items` y `data.summary`.
+  - `summary` incluye `subtotal` (soles) y `totalItems`.
 
 - `POST {{baseUrl}}/api/v1/cart/items`
   - Requiere `Authorization: Bearer {{token}}`.
   - Body (JSON): `sku`, `quantity`.
   - Esperado: `200` con `data.items` actualizado.
   - Si el SKU no existe: `404`.
+  - Si no hay stock suficiente: `409`.
 
 Ejemplo:
 ```json
@@ -152,6 +154,7 @@ Ejemplo:
   - Requiere `Authorization: Bearer {{token}}`.
   - Body (JSON): `quantity`.
   - Esperado: `200` con `data.items` actualizado.
+  - Si no hay stock suficiente: `409`.
 
 - `DELETE {{baseUrl}}/api/v1/cart/items/:sku`
   - Requiere `Authorization: Bearer {{token}}`.
