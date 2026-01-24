@@ -1,0 +1,60 @@
+# Postman - Pruebas API (v0.2.3)
+
+## Base URL
+- Local: `http://localhost:3000`
+- Produccion: `https://api.spacegurumis.lat`
+
+## Endpoints disponibles
+
+### Health
+- `GET {{baseUrl}}/health`
+  - Esperado: `200` con `{ "status": "ok" }`.
+
+### Catalogo - Categorias
+- `GET {{baseUrl}}/api/v1/catalog/categories`
+  - Lista categorias activas.
+  - Esperado: `200` con `data[]` y `meta.total`.
+
+### Catalogo - Tipos (productos base)
+- `GET {{baseUrl}}/api/v1/catalog/products`
+  - Lista tipos activos con `variantsCount`.
+  - Filtros soportados:
+    - `category` (slug de categoria)
+    - `q` (busqueda por nombre de producto)
+    - `page`, `pageSize`
+
+Ejemplos:
+- `GET {{baseUrl}}/api/v1/catalog/products?page=1&pageSize=12`
+- `GET {{baseUrl}}/api/v1/catalog/products?category=amigurumis`
+- `GET {{baseUrl}}/api/v1/catalog/products?q=alien`
+
+Detalle de tipo:
+- `GET {{baseUrl}}/api/v1/catalog/products/:slug`
+  - Esperado: `200` con `data` y `variants[]`.
+  - Si no existe: `404`.
+
+Ejemplo:
+- `GET {{baseUrl}}/api/v1/catalog/products/alien-tejido`
+
+### Catalogo - Variantes (productos comprables)
+- `GET {{baseUrl}}/api/v1/catalog/variants`
+  - Lista variantes activas con producto y categoria.
+  - Filtros soportados:
+    - `category` (slug de categoria)
+    - `q` (busqueda por nombre de producto o variante)
+    - `minPrice`, `maxPrice` (en soles)
+    - `page`, `pageSize`
+
+Ejemplos:
+- `GET {{baseUrl}}/api/v1/catalog/variants?page=1&pageSize=12`
+- `GET {{baseUrl}}/api/v1/catalog/variants?category=amigurumis`
+- `GET {{baseUrl}}/api/v1/catalog/variants?q=alien`
+- `GET {{baseUrl}}/api/v1/catalog/variants?minPrice=32&maxPrice=45`
+
+Detalle de variante:
+- `GET {{baseUrl}}/api/v1/catalog/variants/:sku`
+  - Esperado: `200` con `data` y `stockAvailable`.
+  - Si no existe: `404`.
+
+Ejemplo:
+- `GET {{baseUrl}}/api/v1/catalog/variants/ALI-ESP-001`

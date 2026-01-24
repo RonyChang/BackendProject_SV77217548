@@ -16,9 +16,6 @@ const allowedOrigins = new Set([
     'http://127.0.0.1:5173',
     'http://localhost:5500',
     'http://127.0.0.1:5500',
-    'http://77.42.89.54:8080',
-    'http://spacegurumis.lat',
-    'http://www.spacegurumis.lat',
     'https://spacegurumis.lat',
     'https://www.spacegurumis.lat',
 ]);

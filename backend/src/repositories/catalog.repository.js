@@ -28,16 +28,6 @@ function buildProductFilters(filters) {
         clauses.push(`p.name ILIKE $${values.length}`);
     }
 
-    if (typeof filters.minPrice === 'number') {
-        values.push(filters.minPrice);
-        clauses.push(`pp.min_price_cents >= $${values.length}`);
-    }
-
-    if (typeof filters.maxPrice === 'number') {
-        values.push(filters.maxPrice);
-        clauses.push(`pp.min_price_cents <= $${values.length}`);
-    }
-
     return {
         whereSql: clauses.length ? `WHERE ${clauses.join(' AND ')}` : '',
         values,
@@ -96,7 +86,7 @@ async function fetchActiveProducts(filters, pagination) {
         FROM products p
         JOIN categories c ON c.id = p.category_id
         LEFT JOIN (
-            SELECT product_id, MIN(price_cents) AS min_price_cents, COUNT(*)::int AS variants_count
+            SELECT product_id, COUNT(*)::int AS variants_count
             FROM product_variants
             GROUP BY product_id
         ) pp ON pp.product_id = p.id
@@ -116,7 +106,7 @@ async function fetchActiveProductsCount(filters) {
         FROM products p
         JOIN categories c ON c.id = p.category_id
         LEFT JOIN (
-            SELECT product_id, MIN(price_cents) AS min_price_cents, COUNT(*)::int AS variants_count
+            SELECT product_id, COUNT(*)::int AS variants_count
             FROM product_variants
             GROUP BY product_id
         ) pp ON pp.product_id = p.id

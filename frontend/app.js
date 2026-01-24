@@ -4,31 +4,9 @@
     const root = ReactDOM.createRoot(rootElement);
     const createElement = React.createElement;
 
-    function resolveApiBase() {
-        if (window.API_BASE_URL) {
-            return window.API_BASE_URL;
-        }
-
-        const host = window.location.hostname;
-        if (!host) {
-            return '';
-        }
-
-        if (host === 'localhost' || host === '127.0.0.1') {
-            return 'http://localhost:3000';
-        }
-
-        const protocol = window.location.protocol || 'http:';
-        return `${protocol}//${host}:3000`;
-    }
-
-    const apiBase = resolveApiBase();
+    const apiBase = window.API_BASE_URL || 'http://localhost:3000';
 
     function buildApiUrl(path) {
-        if (!apiBase) {
-            return path;
-        }
-
         return `${apiBase}${path}`;
     }
 

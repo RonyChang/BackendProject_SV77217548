@@ -56,3 +56,4 @@
 - Nuevo listado y detalle por variante en `/api/v1/catalog/variants` y `/api/v1/catalog/variants/:sku`.
 - Filtros y paginacion aplican al listado de variantes.
 - Listado de tipos en `/api/v1/catalog/products` ahora incluye `variantsCount`.
+- CORS restringido a dominios HTTPS y entornos locales.

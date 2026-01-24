@@ -63,7 +63,13 @@ async function listCategories(req, res, next) {
 async function listProducts(req, res, next) {
     try {
         const { filters, page, pageSize } = parseListParams(req);
-        const { items, meta } = await catalogService.listProducts(filters, {
+        const productFilters = {
+            category: filters.category,
+            q: filters.q,
+            minPrice: null,
+            maxPrice: null,
+        };
+        const { items, meta } = await catalogService.listProducts(productFilters, {
             page,
             pageSize,
         });
