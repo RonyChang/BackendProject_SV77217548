@@ -142,6 +142,33 @@
         }, []);
 
         useEffect(() => {
+            if (!window.location.hash) {
+                return;
+            }
+
+            const hashValue = window.location.hash.startsWith('#')
+                ? window.location.hash.slice(1)
+                : window.location.hash;
+            const params = new URLSearchParams(hashValue);
+            const token = params.get('token');
+            const errorParam = params.get('error');
+
+            if (token) {
+                window.localStorage.setItem('authToken', token);
+                setAuthToken(token);
+                window.history.replaceState({}, '', window.location.pathname);
+                navigate('/profile');
+                return;
+            }
+
+            if (errorParam) {
+                setLoginError(errorParam);
+                setRegisterError(errorParam);
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+        }, []);
+
+        useEffect(() => {
             if (authToken) {
                 loadProfile();
             } else {
@@ -168,7 +195,7 @@
 
         function handleGoogleLogin() {
             const url = buildApiUrl('/api/v1/auth/google');
-            window.open(url, '_blank', 'noopener');
+            window.location.assign(url);
         }
 
         function saveSession(data) {

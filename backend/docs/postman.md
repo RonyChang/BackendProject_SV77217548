@@ -94,8 +94,9 @@ Ejemplo:
   - Redirige a Google con la pantalla de consentimiento.
 
 - `GET {{baseUrl}}/api/v1/auth/google/callback?code=...`
-  - Responde `200` con `data.user` y `data.token` si el codigo es valido.
-  - Si falta el `code`: `400`.
+  - Si `FRONTEND_BASE_URL` está configurado, redirige a `{{frontendUrl}}/login#token=...`.
+  - Si no hay `FRONTEND_BASE_URL`, responde `200` con `data.user` y `data.token`.
+  - Si falta el `code`: `400` o redirección con error.
 
 ### Perfil
 - `GET {{baseUrl}}/api/v1/profile`

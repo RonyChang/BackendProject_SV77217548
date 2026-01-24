@@ -111,17 +111,30 @@ async function googleStart(req, res, next) {
 
 async function googleCallback(req, res, next) {
     try {
+        const frontendBaseUrl = process.env.FRONTEND_BASE_URL;
         const code = req.query.code;
         if (!code || typeof code !== 'string') {
+            if (frontendBaseUrl) {
+                const url = new URL('/login', frontendBaseUrl);
+                url.hash = 'error=Codigo%20requerido';
+                return res.redirect(url.toString());
+            }
+
             return res.status(400).json({
                 data: null,
-                message: 'Datos inválidos',
-                errors: [{ message: 'Código requerido' }],
+                message: 'Datos inv?lidos',
+                errors: [{ message: 'C?digo requerido' }],
                 meta: {},
             });
         }
 
         const result = await authService.loginWithGoogle(code);
+        if (frontendBaseUrl) {
+            const url = new URL('/login', frontendBaseUrl);
+            url.hash = `token=${encodeURIComponent(result.token)}`;
+            return res.redirect(url.toString());
+        }
+
         return res.status(200).json({
             data: result,
             message: 'OK',
@@ -129,6 +142,12 @@ async function googleCallback(req, res, next) {
             meta: {},
         });
     } catch (error) {
+        if (process.env.FRONTEND_BASE_URL) {
+            const url = new URL('/login', process.env.FRONTEND_BASE_URL);
+            url.hash = 'error=No%20se%20pudo%20iniciar%20sesion%20con%20Google';
+            return res.redirect(url.toString());
+        }
+
         return next(error);
     }
 }

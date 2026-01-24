@@ -79,5 +79,6 @@
 - Vinculación de cuentas por email existente.
 - `users` ahora guarda `google_id` y `avatar_url` y permite `password_hash` NULL.
 - Frontend con navegación (login/registro/perfil), cierre de sesión y formulario de perfil.
-- Botón de acceso Google en el frontend (abre nueva pestaña y muestra el token).
+- Botón de acceso Google en el frontend (redirige al login con token).
 - Registro ahora permite solo email y contraseña; el nombre se completa en el perfil.
+- Callback de Google redirige al frontend cuando `FRONTEND_BASE_URL` está configurado.
