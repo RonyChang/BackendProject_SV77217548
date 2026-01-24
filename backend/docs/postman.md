@@ -1,4 +1,4 @@
-# Postman - Pruebas API (v0.3.2)
+# Postman - Pruebas API (v0.4.1)
 
 ## Base URL
 - Local: `http://localhost:3000`
@@ -128,3 +128,35 @@ Ejemplo:
   }
 }
 ```
+
+### Carrito
+- `GET {{baseUrl}}/api/v1/cart`
+  - Requiere `Authorization: Bearer {{token}}`.
+  - Esperado: `200` con `data.items` (lista vacia si no hay carrito).
+
+- `POST {{baseUrl}}/api/v1/cart/items`
+  - Requiere `Authorization: Bearer {{token}}`.
+  - Body (JSON): `sku`, `quantity`.
+  - Esperado: `200` con `data.items` actualizado.
+  - Si el SKU no existe: `404`.
+
+Ejemplo:
+```json
+{
+  "sku": "ALI-ESP-001",
+  "quantity": 2
+}
+```
+
+- `PATCH {{baseUrl}}/api/v1/cart/items/:sku`
+  - Requiere `Authorization: Bearer {{token}}`.
+  - Body (JSON): `quantity`.
+  - Esperado: `200` con `data.items` actualizado.
+
+- `DELETE {{baseUrl}}/api/v1/cart/items/:sku`
+  - Requiere `Authorization: Bearer {{token}}`.
+  - Esperado: `200` con `data.items` actualizado.
+
+- `DELETE {{baseUrl}}/api/v1/cart`
+  - Requiere `Authorization: Bearer {{token}}`.
+  - Vacia el carrito del usuario.

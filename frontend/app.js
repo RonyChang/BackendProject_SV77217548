@@ -95,6 +95,10 @@
             return 'profile';
         }
 
+        if (pathname === '/cart') {
+            return 'cart';
+        }
+
         return 'home';
     }
 
@@ -124,6 +128,11 @@
         const [profileStatus, setProfileStatus] = useState('idle');
         const [profileError, setProfileError] = useState('');
         const [profileMessage, setProfileMessage] = useState('');
+
+        const [cartItems, setCartItems] = useState([]);
+        const [cartStatus, setCartStatus] = useState('idle');
+        const [cartError, setCartError] = useState('');
+        const [cartMessage, setCartMessage] = useState('');
         const [view, setView] = useState(resolveView(window.location.pathname));
 
         const isLoggedIn = Boolean(authToken);
@@ -176,6 +185,21 @@
             }
         }, [authToken]);
 
+        useEffect(() => {
+            if (view !== 'cart') {
+                return;
+            }
+
+            if (!authToken) {
+                setCartItems([]);
+                setCartError('');
+                setCartMessage('');
+                return;
+            }
+
+            loadCart();
+        }, [view, authToken]);
+
         function navigate(path) {
             if (!path) {
                 return;
@@ -212,6 +236,9 @@
             window.localStorage.removeItem('authToken');
             setAuthToken('');
             setProfileForm(buildEmptyProfileForm());
+            setCartItems([]);
+            setCartError('');
+            setCartMessage('');
             navigate('/');
         }
 
@@ -422,6 +449,183 @@
             }
         }
 
+        async function loadCart() {
+            if (!authToken) {
+                return;
+            }
+
+            setCartStatus('loading');
+            setCartError('');
+            setCartMessage('');
+            try {
+                const response = await fetch(buildApiUrl('/api/v1/cart'), {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                });
+
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        clearSession();
+                        throw new Error('Sesion expirada.');
+                    }
+
+                    throw new Error(getErrorMessage(payload, 'No se pudo cargar el carrito.'));
+                }
+
+                setCartItems(Array.isArray(payload.data && payload.data.items) ? payload.data.items : []);
+            } catch (err) {
+                setCartError(err.message || 'Error al cargar el carrito.');
+            } finally {
+                setCartStatus('idle');
+            }
+        }
+
+        async function handleAddToCart(sku) {
+            if (!sku) {
+                return;
+            }
+
+            if (!authToken) {
+                navigate('/login');
+                return;
+            }
+
+            setCartError('');
+            setCartMessage('');
+            try {
+                const response = await fetch(buildApiUrl('/api/v1/cart/items'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                    body: JSON.stringify({
+                        sku,
+                        quantity: 1,
+                    }),
+                });
+
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        clearSession();
+                        throw new Error('Sesion expirada.');
+                    }
+
+                    throw new Error(getErrorMessage(payload, 'No se pudo agregar al carrito.'));
+                }
+
+                setCartItems(Array.isArray(payload.data && payload.data.items) ? payload.data.items : []);
+                setCartMessage('Producto agregado al carrito.');
+            } catch (err) {
+                setCartError(err.message || 'No se pudo agregar al carrito.');
+            }
+        }
+
+        async function handleUpdateCartQuantity(sku, quantity) {
+            if (!sku || !authToken) {
+                return;
+            }
+
+            if (!Number.isFinite(Number(quantity)) || Number(quantity) <= 0) {
+                return;
+            }
+
+            setCartError('');
+            setCartMessage('');
+            try {
+                const response = await fetch(buildApiUrl(`/api/v1/cart/items/${sku}`), {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                    body: JSON.stringify({
+                        quantity: Number(quantity),
+                    }),
+                });
+
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        clearSession();
+                        throw new Error('Sesion expirada.');
+                    }
+
+                    throw new Error(getErrorMessage(payload, 'No se pudo actualizar el carrito.'));
+                }
+
+                setCartItems(Array.isArray(payload.data && payload.data.items) ? payload.data.items : []);
+            } catch (err) {
+                setCartError(err.message || 'No se pudo actualizar el carrito.');
+            }
+        }
+
+        async function handleRemoveCartItem(sku) {
+            if (!sku || !authToken) {
+                return;
+            }
+
+            setCartError('');
+            setCartMessage('');
+            try {
+                const response = await fetch(buildApiUrl(`/api/v1/cart/items/${sku}`), {
+                    method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                });
+
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        clearSession();
+                        throw new Error('Sesion expirada.');
+                    }
+
+                    throw new Error(getErrorMessage(payload, 'No se pudo eliminar el item.'));
+                }
+
+                setCartItems(Array.isArray(payload.data && payload.data.items) ? payload.data.items : []);
+            } catch (err) {
+                setCartError(err.message || 'No se pudo eliminar el item.');
+            }
+        }
+
+        async function handleClearCart() {
+            if (!authToken) {
+                return;
+            }
+
+            setCartError('');
+            setCartMessage('');
+            try {
+                const response = await fetch(buildApiUrl('/api/v1/cart'), {
+                    method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                });
+
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        clearSession();
+                        throw new Error('Sesion expirada.');
+                    }
+
+                    throw new Error(getErrorMessage(payload, 'No se pudo vaciar el carrito.'));
+                }
+
+                setCartItems([]);
+                setCartMessage('Carrito vacio.');
+            } catch (err) {
+                setCartError(err.message || 'No se pudo vaciar el carrito.');
+            }
+        }
+
         const cards = variants.map((variant) =>
             createElement(
                 'article',
@@ -442,6 +646,70 @@
                         onClick: () => loadVariantDetail(variant.sku),
                     },
                     'Ver detalle'
+                ),
+                createElement(
+                    'button',
+                    {
+                        className: 'button button--primary',
+                        type: 'button',
+                        onClick: () => handleAddToCart(variant.sku),
+                    },
+                    'Agregar al carrito'
+                )
+            )
+        );
+
+        const cartRows = cartItems.map((item) =>
+            createElement(
+                'div',
+                { className: 'cart__row', key: item.sku },
+                createElement(
+                    'div',
+                    { className: 'cart__info' },
+                    createElement(
+                        'h3',
+                        { className: 'cart__title' },
+                        item.variantName
+                            ? `${item.productName} - ${item.variantName}`
+                            : item.productName
+                    ),
+                    createElement('p', { className: 'cart__meta' }, `SKU: ${item.sku}`),
+                    createElement('p', { className: 'cart__meta' }, formatPrice(item.price))
+                ),
+                createElement(
+                    'div',
+                    { className: 'cart__actions' },
+                    createElement(
+                        'button',
+                        {
+                            className: 'button button--ghost',
+                            type: 'button',
+                            disabled: item.quantity <= 1,
+                            onClick: () =>
+                                handleUpdateCartQuantity(item.sku, item.quantity - 1),
+                        },
+                        '-'
+                    ),
+                    createElement('span', { className: 'cart__qty' }, item.quantity),
+                    createElement(
+                        'button',
+                        {
+                            className: 'button button--ghost',
+                            type: 'button',
+                            onClick: () =>
+                                handleUpdateCartQuantity(item.sku, item.quantity + 1),
+                        },
+                        '+'
+                    ),
+                    createElement(
+                        'button',
+                        {
+                            className: 'button button--danger',
+                            type: 'button',
+                            onClick: () => handleRemoveCartItem(item.sku),
+                        },
+                        'Eliminar'
+                    )
                 )
             )
         );
@@ -449,7 +717,13 @@
         const isLoginView = view === 'login';
         const isRegisterView = view === 'register';
         const isProfileView = view === 'profile';
+        const isCartView = view === 'cart';
         const isHomeView = view === 'home';
+        const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
+        const cartTotal = cartItems.reduce(
+            (total, item) => total + (Number(item.price) || 0) * item.quantity,
+            0
+        );
 
         return createElement(
             'main',
@@ -469,6 +743,15 @@
                 createElement(
                     'nav',
                     { className: 'nav' },
+                    createElement(
+                        'button',
+                        {
+                            className: 'button button--ghost',
+                            type: 'button',
+                            onClick: () => navigate('/cart'),
+                        },
+                        cartCount ? `Carrito (${cartCount})` : 'Carrito'
+                    ),
                     !isLoggedIn
                         ? createElement(
                             'button',
@@ -915,6 +1198,91 @@
                     )
                 )
                 : null,
+            isCartView
+                ? createElement(
+                    'section',
+                    { className: 'cart' },
+                    createElement('h2', { className: 'section-title' }, 'Carrito'),
+                    !isLoggedIn
+                        ? createElement(
+                            'div',
+                            { className: 'auth__actions' },
+                            createElement(
+                                'p',
+                                { className: 'status' },
+                                'Inicia sesion para ver tu carrito.'
+                            ),
+                            createElement(
+                                'button',
+                                {
+                                    className: 'button button--primary',
+                                    type: 'button',
+                                    onClick: () => navigate('/login'),
+                                },
+                                'Ir a login'
+                            )
+                        )
+                        : createElement(
+                            'div',
+                            { className: 'cart__content' },
+                            cartStatus === 'loading'
+                                ? createElement(
+                                    'p',
+                                    { className: 'status' },
+                                    'Cargando carrito...'
+                                )
+                                : null,
+                            cartError
+                                ? createElement(
+                                    'p',
+                                    { className: 'status status--error' },
+                                    cartError
+                                )
+                                : null,
+                            cartMessage
+                                ? createElement(
+                                    'p',
+                                    { className: 'status status--success' },
+                                    cartMessage
+                                )
+                                : null,
+                            cartStatus === 'idle' && !cartItems.length
+                                ? createElement(
+                                    'p',
+                                    { className: 'status' },
+                                    'Tu carrito esta vacio.'
+                                )
+                                : null,
+                            cartItems.length
+                                ? createElement(
+                                    'div',
+                                    { className: 'cart__list' },
+                                    cartRows
+                                )
+                                : null,
+                            cartItems.length
+                                ? createElement(
+                                    'div',
+                                    { className: 'cart__summary' },
+                                    createElement(
+                                        'p',
+                                        { className: 'cart__total' },
+                                        `Total: ${formatPrice(cartTotal)}`
+                                    ),
+                                    createElement(
+                                        'button',
+                                        {
+                                            className: 'button button--danger',
+                                            type: 'button',
+                                            onClick: handleClearCart,
+                                        },
+                                        'Vaciar carrito'
+                                    )
+                                )
+                                : null
+                        )
+                )
+                : null,
             isHomeView
                 ? createElement(
                     'div',
@@ -969,6 +1337,15 @@
                                     selected.product && selected.product.description
                                         ? selected.product.description
                                         : 'Sin descripción'
+                                ),
+                                createElement(
+                                    'button',
+                                    {
+                                        className: 'button button--primary',
+                                        type: 'button',
+                                        onClick: () => handleAddToCart(selected.sku),
+                                    },
+                                    'Agregar al carrito'
                                 )
                             )
                             : createElement(

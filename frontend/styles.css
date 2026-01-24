@@ -222,6 +222,75 @@ p {
     border: 1px solid #e5e7eb;
 }
 
+.cart {
+    margin-top: 24px;
+    padding: 20px;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+}
+
+.cart__list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.cart__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.cart__info {
+    flex: 1 1 260px;
+}
+
+.cart__title {
+    margin: 0 0 6px;
+    font-size: 1rem;
+}
+
+.cart__meta {
+    margin: 0 0 4px;
+    font-size: 0.9rem;
+    color: #4b5563;
+}
+
+.cart__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cart__qty {
+    min-width: 24px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.cart__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.cart__total {
+    margin: 0;
+    font-weight: 700;
+}
+
 .card {
     padding: 16px;
     border-radius: 12px;

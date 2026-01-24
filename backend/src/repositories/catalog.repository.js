@@ -1,239 +1,345 @@
-const pool = require('../config/db');
+const { Op, fn, col } = require('sequelize');
+const {
+    Category,
+    Product,
+    ProductVariant,
+    Inventory,
+} = require('../models');
 
 async function fetchActiveCategories() {
-    // Retorna las categorias activas.
-    const query = `
-        SELECT id, name, slug
-        FROM categories
-        WHERE is_active = true
-        ORDER BY name ASC;
-    `;
+    const rows = await Category.findAll({
+        where: { isActive: true },
+        order: [['name', 'ASC']],
+        attributes: ['id', 'name', 'slug'],
+    });
 
-    const result = await pool.query(query);
-    return result.rows;
+    return rows.map((row) => row.get({ plain: true }));
 }
 
 // Construye filtros para el listado de productos.
 function buildProductFilters(filters) {
-    const clauses = ['p.is_active = true'];
-    const values = [];
-
-    if (filters.category) {
-        values.push(filters.category);
-        clauses.push(`c.slug = $${values.length}`);
-    }
+    const productWhere = {
+        isActive: true,
+    };
 
     if (filters.q) {
-        values.push(`%${filters.q}%`);
-        clauses.push(`p.name ILIKE $${values.length}`);
+        productWhere.name = { [Op.iLike]: `%${filters.q}%` };
     }
 
+    const categoryWhere = filters.category ? { slug: filters.category } : null;
+
     return {
-        whereSql: clauses.length ? `WHERE ${clauses.join(' AND ')}` : '',
-        values,
+        productWhere,
+        categoryWhere,
     };
 }
 
 // Construye filtros para el listado de variantes.
 function buildVariantFilters(filters) {
-    const clauses = ['p.is_active = true'];
-    const values = [];
-
-    if (filters.category) {
-        values.push(filters.category);
-        clauses.push(`c.slug = $${values.length}`);
-    }
+    const variantWhere = {};
 
     if (filters.q) {
-        values.push(`%${filters.q}%`);
-        clauses.push(`(p.name ILIKE $${values.length} OR COALESCE(v.variant_name, '') ILIKE $${values.length})`);
+        variantWhere[Op.or] = [
+            { variantName: { [Op.iLike]: `%${filters.q}%` } },
+            { '$product.name$': { [Op.iLike]: `%${filters.q}%` } },
+        ];
     }
 
     if (typeof filters.minPrice === 'number') {
-        values.push(filters.minPrice);
-        clauses.push(`v.price_cents >= $${values.length}`);
+        variantWhere.priceCents = { [Op.gte]: filters.minPrice };
     }
 
     if (typeof filters.maxPrice === 'number') {
-        values.push(filters.maxPrice);
-        clauses.push(`v.price_cents <= $${values.length}`);
+        variantWhere.priceCents = {
+            ...(variantWhere.priceCents || {}),
+            [Op.lte]: filters.maxPrice,
+        };
     }
 
+    const productWhere = { isActive: true };
+    const categoryWhere = filters.category ? { slug: filters.category } : null;
+
     return {
-        whereSql: clauses.length ? `WHERE ${clauses.join(' AND ')}` : '',
-        values,
+        variantWhere,
+        productWhere,
+        categoryWhere,
     };
 }
 
 async function fetchActiveProducts(filters, pagination) {
-    const { whereSql, values } = buildProductFilters(filters);
-    const params = [...values];
+    const { productWhere, categoryWhere } = buildProductFilters(filters);
+    const categoryInclude = {
+        model: Category,
+        as: 'category',
+        attributes: ['id', 'name', 'slug'],
+        required: true,
+    };
 
-    params.push(pagination.pageSize);
-    const limitIndex = params.length;
-    params.push((pagination.page - 1) * pagination.pageSize);
-    const offsetIndex = params.length;
+    if (categoryWhere) {
+        categoryInclude.where = categoryWhere;
+    }
 
-    const query = `
-        SELECT
-            p.id,
-            p.name,
-            p.slug,
-            COALESCE(pp.variants_count, 0) AS "variantsCount",
-            c.id AS "categoryId",
-            c.name AS "categoryName",
-            c.slug AS "categorySlug"
-        FROM products p
-        JOIN categories c ON c.id = p.category_id
-        LEFT JOIN (
-            SELECT product_id, COUNT(*)::int AS variants_count
-            FROM product_variants
-            GROUP BY product_id
-        ) pp ON pp.product_id = p.id
-        ${whereSql}
-        ORDER BY p.name ASC
-        LIMIT $${limitIndex} OFFSET $${offsetIndex};
-    `;
+    const rows = await Product.findAll({
+        where: productWhere,
+        include: [
+            categoryInclude,
+            {
+                model: ProductVariant,
+                as: 'variants',
+                attributes: [],
+                required: false,
+            },
+        ],
+        attributes: [
+            'id',
+            'name',
+            'slug',
+            [fn('COUNT', col('variants.id')), 'variantsCount'],
+        ],
+        group: [
+            'Product.id',
+            'Product.name',
+            'Product.slug',
+            'category.id',
+            'category.name',
+            'category.slug',
+        ],
+        order: [['name', 'ASC']],
+        limit: pagination.pageSize,
+        offset: (pagination.page - 1) * pagination.pageSize,
+        subQuery: false,
+    });
 
-    const result = await pool.query(query, params);
-    return result.rows;
+    return rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        variantsCount: Number(row.get('variantsCount') || 0),
+        categoryId: row.category ? row.category.id : null,
+        categoryName: row.category ? row.category.name : null,
+        categorySlug: row.category ? row.category.slug : null,
+    }));
 }
 
 async function fetchActiveProductsCount(filters) {
-    const { whereSql, values } = buildProductFilters(filters);
-    const query = `
-        SELECT COUNT(*)::int AS total
-        FROM products p
-        JOIN categories c ON c.id = p.category_id
-        LEFT JOIN (
-            SELECT product_id, COUNT(*)::int AS variants_count
-            FROM product_variants
-            GROUP BY product_id
-        ) pp ON pp.product_id = p.id
-        ${whereSql};
-    `;
+    const { productWhere, categoryWhere } = buildProductFilters(filters);
+    const categoryInclude = {
+        model: Category,
+        as: 'category',
+        required: true,
+    };
 
-    const result = await pool.query(query, values);
-    return result.rows[0] ? result.rows[0].total : 0;
+    if (categoryWhere) {
+        categoryInclude.where = categoryWhere;
+    }
+
+    const total = await Product.count({
+        where: productWhere,
+        include: [categoryInclude],
+        distinct: true,
+        col: 'Product.id',
+    });
+
+    return total || 0;
 }
 
 async function fetchActiveVariants(filters, pagination) {
-    const { whereSql, values } = buildVariantFilters(filters);
-    const params = [...values];
+    const { variantWhere, productWhere, categoryWhere } = buildVariantFilters(filters);
+    const categoryInclude = {
+        model: Category,
+        as: 'category',
+        attributes: ['id', 'name', 'slug'],
+        required: true,
+    };
 
-    params.push(pagination.pageSize);
-    const limitIndex = params.length;
-    params.push((pagination.page - 1) * pagination.pageSize);
-    const offsetIndex = params.length;
+    if (categoryWhere) {
+        categoryInclude.where = categoryWhere;
+    }
 
-    const query = `
-        SELECT
-            v.id,
-            v.sku,
-            v.variant_name AS "variantName",
-            v.price_cents AS "priceCents",
-            COALESCE(i.stock, 0) AS stock,
-            COALESCE(i.reserved, 0) AS reserved,
-            p.id AS "productId",
-            p.name AS "productName",
-            p.slug AS "productSlug",
-            c.id AS "categoryId",
-            c.name AS "categoryName",
-            c.slug AS "categorySlug"
-        FROM product_variants v
-        JOIN products p ON p.id = v.product_id
-        JOIN categories c ON c.id = p.category_id
-        LEFT JOIN inventory i ON i.product_variant_id = v.id
-        ${whereSql}
-        ORDER BY p.name ASC, v.sku ASC
-        LIMIT $${limitIndex} OFFSET $${offsetIndex};
-    `;
+    const rows = await ProductVariant.findAll({
+        where: variantWhere,
+        include: [
+            {
+                model: Product,
+                as: 'product',
+                attributes: ['id', 'name', 'slug', 'description', 'categoryId'],
+                where: productWhere,
+                required: true,
+                include: [categoryInclude],
+            },
+            {
+                model: Inventory,
+                as: 'inventory',
+                attributes: ['stock', 'reserved'],
+                required: false,
+            },
+        ],
+        order: [
+            [{ model: Product, as: 'product' }, 'name', 'ASC'],
+            ['sku', 'ASC'],
+        ],
+        limit: pagination.pageSize,
+        offset: (pagination.page - 1) * pagination.pageSize,
+        subQuery: false,
+    });
 
-    const result = await pool.query(query, params);
-    return result.rows;
+    return rows.map((row) => {
+        const inventory = row.inventory || {};
+        return {
+            id: row.id,
+            sku: row.sku,
+            variantName: row.variantName,
+            priceCents: row.priceCents,
+            stock: inventory.stock || 0,
+            reserved: inventory.reserved || 0,
+            productId: row.product ? row.product.id : null,
+            productName: row.product ? row.product.name : null,
+            productSlug: row.product ? row.product.slug : null,
+            categoryId: row.product && row.product.category ? row.product.category.id : null,
+            categoryName: row.product && row.product.category ? row.product.category.name : null,
+            categorySlug: row.product && row.product.category ? row.product.category.slug : null,
+        };
+    });
 }
 
 async function fetchActiveVariantsCount(filters) {
-    const { whereSql, values } = buildVariantFilters(filters);
-    const query = `
-        SELECT COUNT(*)::int AS total
-        FROM product_variants v
-        JOIN products p ON p.id = v.product_id
-        JOIN categories c ON c.id = p.category_id
-        ${whereSql};
-    `;
+    const { variantWhere, productWhere, categoryWhere } = buildVariantFilters(filters);
+    const categoryInclude = {
+        model: Category,
+        as: 'category',
+        required: true,
+    };
 
-    const result = await pool.query(query, values);
-    return result.rows[0] ? result.rows[0].total : 0;
+    if (categoryWhere) {
+        categoryInclude.where = categoryWhere;
+    }
+
+    const total = await ProductVariant.count({
+        where: variantWhere,
+        include: [
+            {
+                model: Product,
+                as: 'product',
+                where: productWhere,
+                required: true,
+                include: [categoryInclude],
+            },
+        ],
+        distinct: true,
+        col: 'ProductVariant.id',
+    });
+
+    return total || 0;
 }
 
 async function fetchProductBySlug(slug) {
-    const query = `
-        SELECT
-            p.id,
-            p.name,
-            p.slug,
-            p.description,
-            c.id AS "categoryId",
-            c.name AS "categoryName",
-            c.slug AS "categorySlug"
-        FROM products p
-        JOIN categories c ON c.id = p.category_id
-        WHERE p.slug = $1
-        AND p.is_active = true
-        LIMIT 1;
-    `;
+    const product = await Product.findOne({
+        where: { slug, isActive: true },
+        include: [
+            {
+                model: Category,
+                as: 'category',
+                attributes: ['id', 'name', 'slug'],
+                required: true,
+            },
+        ],
+    });
 
-    const result = await pool.query(query, [slug]);
-    return result.rows[0] || null;
+    if (!product) {
+        return null;
+    }
+
+    return {
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        description: product.description,
+        categoryId: product.category ? product.category.id : null,
+        categoryName: product.category ? product.category.name : null,
+        categorySlug: product.category ? product.category.slug : null,
+    };
 }
 
 async function fetchVariantBySku(sku) {
-    const query = `
-        SELECT
-            v.id,
-            v.sku,
-            v.variant_name AS "variantName",
-            v.price_cents AS "priceCents",
-            COALESCE(i.stock, 0) AS stock,
-            COALESCE(i.reserved, 0) AS reserved,
-            p.id AS "productId",
-            p.name AS "productName",
-            p.slug AS "productSlug",
-            p.description AS "productDescription",
-            c.id AS "categoryId",
-            c.name AS "categoryName",
-            c.slug AS "categorySlug"
-        FROM product_variants v
-        JOIN products p ON p.id = v.product_id
-        JOIN categories c ON c.id = p.category_id
-        LEFT JOIN inventory i ON i.product_variant_id = v.id
-        WHERE v.sku = $1
-        AND p.is_active = true
-        LIMIT 1;
-    `;
+    const variant = await ProductVariant.findOne({
+        where: { sku },
+        include: [
+            {
+                model: Product,
+                as: 'product',
+                attributes: ['id', 'name', 'slug', 'description', 'categoryId'],
+                where: { isActive: true },
+                required: true,
+                include: [
+                    {
+                        model: Category,
+                        as: 'category',
+                        attributes: ['id', 'name', 'slug'],
+                        required: true,
+                    },
+                ],
+            },
+            {
+                model: Inventory,
+                as: 'inventory',
+                attributes: ['stock', 'reserved'],
+                required: false,
+            },
+        ],
+    });
 
-    const result = await pool.query(query, [sku]);
-    return result.rows[0] || null;
+    if (!variant) {
+        return null;
+    }
+
+    const inventory = variant.inventory || {};
+
+    return {
+        id: variant.id,
+        sku: variant.sku,
+        variantName: variant.variantName,
+        priceCents: variant.priceCents,
+        stock: inventory.stock || 0,
+        reserved: inventory.reserved || 0,
+        productId: variant.product ? variant.product.id : null,
+        productName: variant.product ? variant.product.name : null,
+        productSlug: variant.product ? variant.product.slug : null,
+        productDescription: variant.product ? variant.product.description : null,
+        categoryId: variant.product && variant.product.category ? variant.product.category.id : null,
+        categoryName: variant.product && variant.product.category
+            ? variant.product.category.name
+            : null,
+        categorySlug: variant.product && variant.product.category
+            ? variant.product.category.slug
+            : null,
+    };
 }
 
 async function fetchProductVariants(productId) {
-    const query = `
-        SELECT
-            v.id,
-            v.sku,
-            v.variant_name AS "variantName",
-            v.price_cents AS "priceCents",
-            COALESCE(i.stock, 0) AS stock,
-            COALESCE(i.reserved, 0) AS reserved
-        FROM product_variants v
-        LEFT JOIN inventory i ON i.product_variant_id = v.id
-        WHERE v.product_id = $1
-        ORDER BY v.id ASC;
-    `;
+    const rows = await ProductVariant.findAll({
+        where: { productId },
+        include: [
+            {
+                model: Inventory,
+                as: 'inventory',
+                attributes: ['stock', 'reserved'],
+                required: false,
+            },
+        ],
+        order: [['id', 'ASC']],
+    });
 
-    const result = await pool.query(query, [productId]);
-    return result.rows;
+    return rows.map((row) => {
+        const inventory = row.inventory || {};
+        return {
+            id: row.id,
+            sku: row.sku,
+            variantName: row.variantName,
+            priceCents: row.priceCents,
+            stock: inventory.stock || 0,
+            reserved: inventory.reserved || 0,
+        };
+    });
 }
 
 module.exports = {

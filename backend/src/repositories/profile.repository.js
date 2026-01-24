@@ -1,106 +1,70 @@
-const pool = require('../config/db');
+const { User, UserAddress } = require('../models');
 
 async function findUserById(userId) {
-    const query = `
-        SELECT id,
-               email,
-               first_name AS "firstName",
-               last_name AS "lastName",
-               role
-        FROM users
-        WHERE id = $1
-          AND is_active = TRUE
-          AND is_active = TRUE
-    `;
-    const result = await pool.query(query, [userId]);
-    return result.rows[0] || null;
+    const user = await User.findOne({
+        where: { id: userId, isActive: true },
+        attributes: ['id', 'email', 'firstName', 'lastName', 'role'],
+    });
+
+    return user ? user.get({ plain: true }) : null;
 }
 
 async function updateUserNames(userId, firstName, lastName) {
-    const query = `
-        UPDATE users
-        SET first_name = COALESCE($2, first_name),
-            last_name = COALESCE($3, last_name),
-            updated_at = NOW()
-        WHERE id = $1
-        RETURNING id,
-                  email,
-                  first_name AS "firstName",
-                  last_name AS "lastName",
-                  role
-    `;
-    const result = await pool.query(query, [userId, firstName, lastName]);
-    return result.rows[0] || null;
+    const user = await User.findOne({
+        where: { id: userId },
+        attributes: ['id', 'email', 'firstName', 'lastName', 'role'],
+    });
+
+    if (!user) {
+        return null;
+    }
+
+    if (firstName !== null) {
+        user.firstName = firstName;
+    }
+
+    if (lastName !== null) {
+        user.lastName = lastName;
+    }
+
+    await user.save();
+    return user.get({ plain: true });
 }
 
 async function findAddressByUserId(userId) {
-    const query = `
-        SELECT receiver_name AS "receiverName",
-               phone,
-               address_line1 AS "addressLine1",
-               address_line2 AS "addressLine2",
-               country,
-               city,
-               district,
-               postal_code AS "postalCode",
-               reference
-        FROM user_addresses
-        WHERE user_id = $1
-    `;
-    const result = await pool.query(query, [userId]);
-    return result.rows[0] || null;
+    const address = await UserAddress.findOne({
+        where: { userId },
+        attributes: [
+            'receiverName',
+            'phone',
+            'addressLine1',
+            'addressLine2',
+            'country',
+            'city',
+            'district',
+            'postalCode',
+            'reference',
+        ],
+    });
+
+    return address ? address.get({ plain: true }) : null;
 }
 
 async function upsertAddress(userId, address) {
-    const query = `
-        INSERT INTO user_addresses (
-            user_id,
-            receiver_name,
-            phone,
-            address_line1,
-            address_line2,
-            country,
-            city,
-            district,
-            postal_code,
-            reference
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        ON CONFLICT (user_id)
-        DO UPDATE SET
-            receiver_name = EXCLUDED.receiver_name,
-            phone = EXCLUDED.phone,
-            address_line1 = EXCLUDED.address_line1,
-            address_line2 = EXCLUDED.address_line2,
-            country = EXCLUDED.country,
-            city = EXCLUDED.city,
-            district = EXCLUDED.district,
-            postal_code = EXCLUDED.postal_code,
-            reference = EXCLUDED.reference,
-            updated_at = NOW()
-        RETURNING receiver_name AS "receiverName",
-                  phone,
-                  address_line1 AS "addressLine1",
-                  address_line2 AS "addressLine2",
-                  country,
-                  city,
-                  district,
-                  postal_code AS "postalCode",
-                  reference
-    `;
-    const result = await pool.query(query, [
+    await UserAddress.upsert({
         userId,
-        address.receiverName,
-        address.phone,
-        address.addressLine1,
-        address.addressLine2,
-        address.country,
-        address.city,
-        address.district,
-        address.postalCode,
-        address.reference,
-    ]);
-    return result.rows[0] || null;
+        receiverName: address.receiverName,
+        phone: address.phone,
+        addressLine1: address.addressLine1,
+        addressLine2: address.addressLine2,
+        country: address.country,
+        city: address.city,
+        district: address.district,
+        postalCode: address.postalCode,
+        reference: address.reference,
+    });
+
+    return findAddressByUserId(userId);
 }
 
 module.exports = {
