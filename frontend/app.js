@@ -69,7 +69,7 @@
                     buildApiUrl('/api/v1/catalog/variants?page=1&pageSize=12')
                 );
                 if (!response.ok) {
-                    throw new Error('No se pudo cargar el catalogo de variantes.');
+                    throw new Error('No se pudo cargar el catalogo de productos.');
                 }
 
                 const payload = await response.json();
@@ -87,13 +87,13 @@
             try {
                 const response = await fetch(buildApiUrl(`/api/v1/catalog/variants/${sku}`));
                 if (!response.ok) {
-                    throw new Error('No se pudo cargar la variante.');
+                    throw new Error('No se pudo cargar el producto.');
                 }
 
                 const payload = await response.json();
                 setSelected(payload.data || null);
             } catch (err) {
-                setDetailError(err.message || 'Error al cargar la variante.');
+                setDetailError(err.message || 'Error al cargar el producto.');
             } finally {
                 setDetailStatus('idle');
             }
@@ -127,7 +127,7 @@
             'main',
             { className: 'app' },
             createElement('h1', null, 'Spacegurumis'),
-            createElement('p', { className: 'lead' }, 'Catalogo de variantes disponibles.'),
+            createElement('p', { className: 'lead' }, 'Catalogo de productos disponibles.'),
             error
                 ? createElement('p', { className: 'status status--error' }, error)
                 : null,
@@ -135,13 +135,13 @@
                 ? createElement('p', { className: 'status' }, 'Cargando catalogo...')
                 : null,
             status === 'idle' && !variants.length
-                ? createElement('p', { className: 'status' }, 'No hay variantes registradas.')
+                ? createElement('p', { className: 'status' }, 'No hay productos registradas.')
                 : null,
             createElement('section', { className: 'catalog' }, cards),
             createElement(
                 'section',
                 { className: 'detail' },
-                createElement('h2', null, 'Detalle de variante'),
+                createElement('h2', null, 'Detalle de producto'),
                 detailError
                     ? createElement('p', { className: 'status status--error' }, detailError)
                     : null,
@@ -171,7 +171,7 @@
                     : createElement(
                         'p',
                         { className: 'status' },
-                        'Selecciona una variante para ver el detalle.'
+                        'Selecciona un producto para ver el detalle.'
                     )
             )
         );
