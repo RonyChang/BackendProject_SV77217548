@@ -82,3 +82,11 @@
 - Botón de acceso Google en el frontend (redirige al login con token).
 - Registro ahora permite solo email y contraseña; el nombre se completa en el perfil.
 - Callback de Google redirige al frontend cuando `FRONTEND_BASE_URL` está configurado.
+
+## Version: v0.4.0
+
+### Cambios
+- Carrito persistente en BD con tablas `carts` y `cart_items`.
+- Endpoints CRUD de carrito en `/api/v1/cart` y `/api/v1/cart/items`.
+- Frontend agrega pagina `/cart` y boton de carrito en el header.
+- Acciones basicas: agregar, actualizar cantidad, eliminar y vaciar carrito.

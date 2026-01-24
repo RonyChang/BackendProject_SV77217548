@@ -28,6 +28,18 @@
 - `reference`
 - `created_at`, `updated_at`
 
+### carts
+- `id` (PK)
+- `user_id` (unique, FK -> users.id)
+- `created_at`, `updated_at`
+
+### cart_items
+- `id` (PK)
+- `cart_id` (FK -> carts.id)
+- `product_variant_id` (FK -> product_variants.id)
+- `quantity`
+- `created_at`, `updated_at`
+
 ### categories
 - `id` (PK)
 - `name`

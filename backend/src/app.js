@@ -6,6 +6,7 @@ const healthRoutes = require('./routes/health.routes');
 const authRoutes = require('./routes/auth.routes');
 const profileRoutes = require('./routes/profile.routes');
 const catalogRoutes = require('./routes/catalog.routes');
+const cartRoutes = require('./routes/cart.routes');
 const notFound = require('./middlewares/notFound');
 const errorHandler = require('./middlewares/errorHandler');
 
@@ -41,6 +42,7 @@ app.use(healthRoutes);
 app.use(authRoutes);
 app.use(profileRoutes);
 app.use(catalogRoutes);
+app.use(cartRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
