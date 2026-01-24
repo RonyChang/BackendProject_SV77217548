@@ -78,4 +78,5 @@
 - Login con Google OAuth en `/api/v1/auth/google` y callback `/api/v1/auth/google/callback`.
 - Vinculación de cuentas por email existente.
 - `users` ahora guarda `google_id` y `avatar_url` y permite `password_hash` NULL.
-- Frontend con botón de acceso Google.
+- Frontend con registro, login, cierre de sesión y formulario de perfil.
+- Botón de acceso Google en el frontend (abre nueva pestaña y muestra el token).
