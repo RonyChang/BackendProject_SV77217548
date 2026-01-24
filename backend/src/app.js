@@ -3,6 +3,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 
 const healthRoutes = require('./routes/health.routes');
+const authRoutes = require('./routes/auth.routes');
 const catalogRoutes = require('./routes/catalog.routes');
 const notFound = require('./middlewares/notFound');
 const errorHandler = require('./middlewares/errorHandler');
@@ -36,6 +37,7 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 app.use(healthRoutes);
+app.use(authRoutes);
 app.use(catalogRoutes);
 
 app.use(notFound);

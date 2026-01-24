@@ -58,3 +58,34 @@ Detalle de variante:
 
 Ejemplo:
 - `GET {{baseUrl}}/api/v1/catalog/variants/ALI-ESP-001`
+
+### Auth
+- `POST {{baseUrl}}/api/v1/auth/register`
+  - Body (JSON):
+    - `email`, `firstName`, `lastName`, `password`
+  - Esperado: `201` con `data.user` y `data.token`.
+  - Si el email ya existe: `409`.
+
+Ejemplo:
+```json
+{
+  "email": "demo@spacegurumis.lat",
+  "firstName": "Demo",
+  "lastName": "User",
+  "password": "Demo1234"
+}
+```
+
+- `POST {{baseUrl}}/api/v1/auth/login`
+  - Body (JSON):
+    - `email`, `password`
+  - Esperado: `200` con `data.user` y `data.token`.
+  - Credenciales invalidas: `401`.
+
+Ejemplo:
+```json
+{
+  "email": "demo@spacegurumis.lat",
+  "password": "Demo1234"
+}
+```

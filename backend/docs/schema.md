@@ -2,6 +2,16 @@
 
 ## Catalogo
 
+### users
+- `id` (PK)
+- `email` (unique)
+- `first_name`
+- `last_name`
+- `password_hash`
+- `role`
+- `is_active`
+- `created_at`, `updated_at`
+
 ### categories
 - `id` (PK)
 - `name`
