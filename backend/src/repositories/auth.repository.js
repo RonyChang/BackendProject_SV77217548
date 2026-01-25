@@ -36,9 +36,23 @@ async function linkGoogleAccount({ userId, googleId, avatarUrl }) {
     return rows[0].get({ plain: true });
 }
 
+async function updateUserRole(userId, role) {
+    const [updatedCount, rows] = await User.update(
+        { role },
+        { where: { id: userId }, returning: true }
+    );
+
+    if (!updatedCount || !rows.length) {
+        return null;
+    }
+
+    return rows[0].get({ plain: true });
+}
+
 module.exports = {
     findUserByEmail,
     createUser,
     findUserByGoogleId,
     linkGoogleAccount,
+    updateUserRole,
 };
