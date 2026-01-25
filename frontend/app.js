@@ -198,6 +198,11 @@
         const [cartError, setCartError] = useState('');
         const [cartSyncError, setCartSyncError] = useState('');
         const [cartMessage, setCartMessage] = useState('');
+        const [discountCode, setDiscountCode] = useState('');
+        const [discountStatus, setDiscountStatus] = useState('idle');
+        const [discountMessage, setDiscountMessage] = useState('');
+        const [discountAmount, setDiscountAmount] = useState(null);
+        const [discountedSubtotal, setDiscountedSubtotal] = useState(null);
         const [view, setView] = useState(resolveView(window.location.pathname));
 
         const isLoggedIn = Boolean(authToken);
@@ -265,6 +270,15 @@
 
             loadCart();
         }, [view, authToken]);
+
+        useEffect(() => {
+            if (!cartItems.length) {
+                setDiscountAmount(null);
+                setDiscountedSubtotal(null);
+                setDiscountMessage('');
+                setDiscountStatus('idle');
+            }
+        }, [cartItems]);
 
         function navigate(path) {
             if (!path) {
@@ -788,6 +802,63 @@
             }
         }
 
+        async function handleValidateDiscount() {
+            const code = discountCode.trim();
+            if (!code) {
+                setDiscountMessage('Ingresa un código.');
+                return;
+            }
+
+            if (!cartItems.length) {
+                setDiscountMessage('Tu carrito está vacío.');
+                return;
+            }
+
+            const subtotal = cartItems.reduce(
+                (total, item) => total + (Number(item.price) || 0) * item.quantity,
+                0
+            );
+
+            setDiscountStatus('loading');
+            setDiscountMessage('');
+            try {
+                const response = await fetch(buildApiUrl('/api/v1/discounts/validate'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        code,
+                        subtotal,
+                    }),
+                });
+
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(getErrorMessage(payload, 'No se pudo validar el código.'));
+                }
+
+                const data = payload.data || {};
+                setDiscountAmount(
+                    Number.isFinite(Number(data.discountAmount))
+                        ? Number(data.discountAmount)
+                        : null
+                );
+                setDiscountedSubtotal(
+                    Number.isFinite(Number(data.finalSubtotal))
+                        ? Number(data.finalSubtotal)
+                        : null
+                );
+                setDiscountMessage('Código aplicado.');
+            } catch (err) {
+                setDiscountAmount(null);
+                setDiscountedSubtotal(null);
+                setDiscountMessage(err.message || 'No se pudo validar el código.');
+            } finally {
+                setDiscountStatus('idle');
+            }
+        }
+
         async function handleCreateOrder() {
             if (!authToken) {
                 navigate('/login');
@@ -805,8 +876,12 @@
                 const response = await fetch(buildApiUrl('/api/v1/orders'), {
                     method: 'POST',
                     headers: {
+                        'Content-Type': 'application/json',
                         Authorization: `Bearer ${authToken}`,
                     },
+                    body: JSON.stringify({
+                        discountCode: discountCode.trim() || null,
+                    }),
                 });
 
                 const payload = await response.json().catch(() => ({}));
@@ -831,6 +906,10 @@
                 }
 
                 setCartItems([]);
+                setDiscountCode('');
+                setDiscountAmount(null);
+                setDiscountedSubtotal(null);
+                setDiscountMessage('');
                 setCartMessage(message);
             } catch (err) {
                 setCartError(err.message || 'No se pudo crear la orden.');
@@ -931,7 +1010,7 @@
         const isCartView = view === 'cart';
         const isHomeView = view === 'home';
         const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
-        const cartTotal = cartItems.reduce(
+        const cartSubtotal = cartItems.reduce(
             (total, item) => total + (Number(item.price) || 0) * item.quantity,
             0
         );
@@ -1485,29 +1564,86 @@
                                 'div',
                                 { className: 'cart__summary' },
                                 createElement(
-                                    'p',
-                                    { className: 'cart__total' },
-                                    `Total: ${formatPrice(cartTotal)}`
-                                ),
-                                isLoggedIn
-                                    ? createElement(
+                                    'div',
+                                    { className: 'cart__discount' },
+                                    createElement(
+                                        'label',
+                                        { className: 'field' },
+                                        createElement(
+                                            'span',
+                                            { className: 'field__label' },
+                                            'Código de descuento'
+                                        ),
+                                        createElement('input', {
+                                            className: 'field__input',
+                                            type: 'text',
+                                            value: discountCode,
+                                            onChange: (event) =>
+                                                setDiscountCode(event.target.value),
+                                        })
+                                    ),
+                                    createElement(
                                         'button',
                                         {
-                                            className: 'button button--primary',
+                                            className: 'button button--ghost',
                                             type: 'button',
-                                            onClick: handleCreateOrder,
+                                            onClick: handleValidateDiscount,
+                                            disabled: discountStatus === 'loading',
                                         },
-                                        'Crear orden'
-                                    )
-                                    : null,
+                                        discountStatus === 'loading'
+                                            ? 'Validando...'
+                                            : 'Validar código'
+                                    ),
+                                    discountMessage
+                                        ? createElement(
+                                            'p',
+                                            { className: 'status' },
+                                            discountMessage
+                                        )
+                                        : null,
+                                    Number.isFinite(discountAmount)
+                                        ? createElement(
+                                            'p',
+                                            { className: 'status' },
+                                            `Descuento: -${formatPrice(discountAmount)}`
+                                        )
+                                        : null,
+                                    Number.isFinite(discountedSubtotal)
+                                        ? createElement(
+                                            'p',
+                                            { className: 'status' },
+                                            `Subtotal con descuento: ${formatPrice(discountedSubtotal)}`
+                                        )
+                                        : null
+                                ),
                                 createElement(
-                                    'button',
-                                    {
-                                        className: 'button button--danger',
-                                        type: 'button',
-                                        onClick: handleClearCart,
-                                    },
-                                    'Vaciar carrito'
+                                    'div',
+                                    { className: 'cart__summary-actions' },
+                                    createElement(
+                                        'p',
+                                        { className: 'cart__total' },
+                                        `Subtotal: ${formatPrice(cartSubtotal)}`
+                                    ),
+                                    isLoggedIn
+                                        ? createElement(
+                                            'button',
+                                            {
+                                                className: 'button button--primary',
+                                                type: 'button',
+                                                onClick: handleCreateOrder,
+                                            },
+                                            'Crear orden'
+                                        )
+                                        : null,
+                                    createElement(
+                                        'button',
+                                        {
+                                            className: 'button button--danger',
+                                            type: 'button',
+                                            onClick: handleClearCart,
+                                        },
+                                        'Vaciar carrito'
+                                    )
                                 )
                             )
                             : null
