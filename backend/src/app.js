@@ -9,6 +9,7 @@ const catalogRoutes = require('./routes/catalog.routes');
 const cartRoutes = require('./routes/cart.routes');
 const orderRoutes = require('./routes/order.routes');
 const discountRoutes = require('./routes/discount.routes');
+const paymentRoutes = require('./routes/payment.routes');
 const notFound = require('./middlewares/notFound');
 const errorHandler = require('./middlewares/errorHandler');
 
@@ -47,6 +48,7 @@ app.use(catalogRoutes);
 app.use(cartRoutes);
 app.use(orderRoutes);
 app.use(discountRoutes);
+app.use(paymentRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

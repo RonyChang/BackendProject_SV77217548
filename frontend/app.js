@@ -198,6 +198,9 @@
         const [cartError, setCartError] = useState('');
         const [cartSyncError, setCartSyncError] = useState('');
         const [cartMessage, setCartMessage] = useState('');
+        const [pendingOrder, setPendingOrder] = useState(null);
+        const [paymentStatus, setPaymentStatus] = useState('idle');
+        const [paymentError, setPaymentError] = useState('');
         const [discountCode, setDiscountCode] = useState('');
         const [discountStatus, setDiscountStatus] = useState('idle');
         const [discountMessage, setDiscountMessage] = useState('');
@@ -328,6 +331,9 @@
             setCartError('');
             setCartSyncError('');
             setCartMessage('');
+            setPendingOrder(null);
+            setPaymentError('');
+            setPaymentStatus('idle');
             navigate('/');
         }
 
@@ -872,6 +878,8 @@
 
             setCartError('');
             setCartMessage('');
+            setPendingOrder(null);
+            setPaymentError('');
             try {
                 const response = await fetch(buildApiUrl('/api/v1/orders'), {
                     method: 'POST',
@@ -897,7 +905,9 @@
                 const orderId = payload.data && payload.data.id ? payload.data.id : null;
                 const total = payload.data && Number(payload.data.total);
                 const shippingCost = payload.data && Number(payload.data.shippingCost);
-                let message = orderId ? `Orden creada #${orderId}.` : 'Orden creada.';
+                let message = orderId
+                    ? `Orden creada #${orderId}.`
+                    : 'Orden creada.';
                 if (Number.isFinite(total)) {
                     const shippingLabel = Number.isFinite(shippingCost)
                         ? ` (envio ${formatPrice(shippingCost)})`
@@ -910,9 +920,67 @@
                 setDiscountAmount(null);
                 setDiscountedSubtotal(null);
                 setDiscountMessage('');
-                setCartMessage(message);
+                setPendingOrder(
+                    orderId
+                        ? {
+                            id: orderId,
+                            total: Number.isFinite(total) ? total : null,
+                            shippingCost: Number.isFinite(shippingCost) ? shippingCost : null,
+                        }
+                        : null
+                );
+                setCartMessage(`${message} Ahora puedes pagar con Stripe.`);
             } catch (err) {
                 setCartError(err.message || 'No se pudo crear la orden.');
+            }
+        }
+
+        async function handleStripeCheckout() {
+            if (!authToken) {
+                navigate('/login');
+                return;
+            }
+
+            if (!pendingOrder || !pendingOrder.id) {
+                setPaymentError('No hay una orden pendiente para pagar.');
+                return;
+            }
+
+            setPaymentStatus('loading');
+            setPaymentError('');
+            try {
+                const response = await fetch(buildApiUrl('/api/v1/payments/stripe/session'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                    body: JSON.stringify({
+                        orderId: pendingOrder.id,
+                    }),
+                });
+
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        clearSession();
+                        throw new Error('Sesión expirada.');
+                    }
+
+                    throw new Error(
+                        getErrorMessage(payload, 'No se pudo iniciar el pago con Stripe.')
+                    );
+                }
+
+                const checkoutUrl = payload.data && payload.data.checkoutUrl;
+                if (!checkoutUrl) {
+                    throw new Error('No se pudo iniciar el pago con Stripe.');
+                }
+
+                window.location.assign(checkoutUrl);
+            } catch (err) {
+                setPaymentError(err.message || 'No se pudo iniciar el pago con Stripe.');
+                setPaymentStatus('idle');
             }
         }
 
@@ -1648,6 +1716,48 @@
                             )
                             : null
                     )
+                )
+                : null,
+            isCartView && pendingOrder && pendingOrder.id
+                ? createElement(
+                    'section',
+                    { className: 'cart' },
+                    createElement('h2', { className: 'section-title' }, 'Pago pendiente'),
+                    createElement(
+                        'p',
+                        { className: 'section-note' },
+                        `Orden #${pendingOrder.id} lista para pagar.`
+                    ),
+                    Number.isFinite(pendingOrder.total)
+                        ? createElement(
+                            'p',
+                            { className: 'cart__total' },
+                            `Total: ${formatPrice(pendingOrder.total)}`
+                        )
+                        : null,
+                    createElement(
+                        'div',
+                        { className: 'cart__summary-actions' },
+                        createElement(
+                            'button',
+                            {
+                                className: 'button button--dark',
+                                type: 'button',
+                                onClick: handleStripeCheckout,
+                                disabled: paymentStatus === 'loading',
+                            },
+                            paymentStatus === 'loading'
+                                ? 'Redirigiendo...'
+                                : 'Pagar con Stripe'
+                        )
+                    ),
+                    paymentError
+                        ? createElement(
+                            'p',
+                            { className: 'status status--error' },
+                            paymentError
+                        )
+                        : null
                 )
                 : null,
             isHomeView

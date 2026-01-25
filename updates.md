@@ -128,3 +128,12 @@
 - Soporte de códigos de descuento (validación y aplicación).
 - Nuevas tablas `discount_codes` y `discount_redemptions`.
 - Orden guarda `discount_code`, `discount_percentage` y `discount_amount_cents`.
+
+## Versión: v0.6.0
+
+### Cambios
+- Endpoint `POST /api/v1/payments/stripe/session` para crear sesión de Stripe Checkout.
+- El total enviado a Stripe usa subtotal, descuento y envío de la orden.
+- Frontend agrega botón para pagar con Stripe desde el carrito.
+- Nuevas variables `STRIPE_SUCCESS_URL` y `STRIPE_CANCEL_URL`.
+- Postman y guía de Stripe actualizados.
