@@ -1,4 +1,4 @@
--- Catalog schema (v0.5.0)
+-- Catalog schema (v0.5.2)
 
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
@@ -86,7 +86,11 @@ CREATE TABLE IF NOT EXISTS orders (
     order_status VARCHAR(40) NOT NULL DEFAULT 'pendingPayment',
     payment_status VARCHAR(40) NOT NULL DEFAULT 'pending',
     subtotal_cents INTEGER NOT NULL DEFAULT 0,
+    shipping_cost_cents INTEGER NOT NULL DEFAULT 0,
     total_cents INTEGER NOT NULL DEFAULT 0,
+    discount_code VARCHAR(80),
+    discount_percentage INTEGER,
+    discount_amount_cents INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -103,6 +107,28 @@ CREATE TABLE IF NOT EXISTS order_items (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT order_items_quantity_gt_zero CHECK (quantity > 0)
+);
+
+CREATE TABLE IF NOT EXISTS discount_codes (
+    id BIGSERIAL PRIMARY KEY,
+    code VARCHAR(80) NOT NULL UNIQUE,
+    percentage INTEGER NOT NULL,
+    min_subtotal_cents INTEGER,
+    max_uses INTEGER,
+    used_count INTEGER NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    starts_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS discount_redemptions (
+    id BIGSERIAL PRIMARY KEY,
+    discount_code_id BIGINT NOT NULL REFERENCES discount_codes(id) ON DELETE CASCADE,
+    order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS inventory (
@@ -123,6 +149,9 @@ CREATE INDEX IF NOT EXISTS idx_cart_items_cart_id ON cart_items(cart_id);
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_variant_id ON order_items(product_variant_id);
+CREATE INDEX IF NOT EXISTS idx_discount_codes_code ON discount_codes(code);
+CREATE INDEX IF NOT EXISTS idx_discount_redemptions_code_id ON discount_redemptions(discount_code_id);
+CREATE INDEX IF NOT EXISTS idx_discount_redemptions_order_id ON discount_redemptions(order_id);
 CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
 CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
 CREATE INDEX IF NOT EXISTS idx_variants_product_id ON product_variants(product_id);

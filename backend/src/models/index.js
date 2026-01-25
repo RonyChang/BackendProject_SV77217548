@@ -289,6 +289,23 @@ const Order = sequelize.define('Order', {
         allowNull: false,
         defaultValue: 0,
     },
+    shippingCostCents: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+    },
+    discountCode: {
+        type: DataTypes.STRING(80),
+        allowNull: true,
+    },
+    discountPercentage: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+    },
+    discountAmountCents: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+    },
 }, {
     tableName: 'orders',
 });
@@ -333,6 +350,75 @@ const OrderItem = sequelize.define('OrderItem', {
     tableName: 'order_items',
 });
 
+const DiscountCode = sequelize.define('DiscountCode', {
+    id: {
+        type: DataTypes.BIGINT,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    code: {
+        type: DataTypes.STRING(80),
+        allowNull: false,
+        unique: true,
+    },
+    percentage: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+    },
+    minSubtotalCents: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+    },
+    maxUses: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+    },
+    usedCount: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+    },
+    isActive: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
+    },
+    startsAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
+    expiresAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
+}, {
+    tableName: 'discount_codes',
+});
+
+const DiscountRedemption = sequelize.define('DiscountRedemption', {
+    id: {
+        type: DataTypes.BIGINT,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    discountCodeId: {
+        type: DataTypes.BIGINT,
+        allowNull: false,
+    },
+    orderId: {
+        type: DataTypes.BIGINT,
+        allowNull: false,
+    },
+    userId: {
+        type: DataTypes.BIGINT,
+        allowNull: false,
+    },
+}, {
+    tableName: 'discount_redemptions',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: false,
+});
 User.hasOne(UserAddress, { foreignKey: 'userId', as: 'address' });
 UserAddress.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
@@ -359,6 +445,13 @@ Order.hasMany(OrderItem, { foreignKey: 'orderId', as: 'items' });
 OrderItem.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
 OrderItem.belongsTo(ProductVariant, { foreignKey: 'productVariantId', as: 'variant' });
 
+DiscountCode.hasMany(DiscountRedemption, { foreignKey: 'discountCodeId', as: 'redemptions' });
+DiscountRedemption.belongsTo(DiscountCode, { foreignKey: 'discountCodeId', as: 'discount' });
+Order.hasMany(DiscountRedemption, { foreignKey: 'orderId', as: 'discountRedemptions' });
+DiscountRedemption.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
+User.hasMany(DiscountRedemption, { foreignKey: 'userId', as: 'discountRedemptions' });
+DiscountRedemption.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
 module.exports = {
     sequelize,
     User,
@@ -371,4 +464,6 @@ module.exports = {
     CartItem,
     Order,
     OrderItem,
+    DiscountCode,
+    DiscountRedemption,
 };

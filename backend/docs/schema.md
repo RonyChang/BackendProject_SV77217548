@@ -46,7 +46,11 @@
 - `order_status`
 - `payment_status`
 - `subtotal_cents`
+- `shipping_cost_cents`
 - `total_cents`
+- `discount_code`
+- `discount_percentage`
+- `discount_amount_cents`
 - `created_at`, `updated_at`
 
 ### order_items
@@ -59,6 +63,25 @@
 - `price_cents`
 - `quantity`
 - `created_at`, `updated_at`
+
+### discount_codes
+- `id` (PK)
+- `code` (unique)
+- `percentage`
+- `min_subtotal_cents`
+- `max_uses`
+- `used_count`
+- `is_active`
+- `starts_at`
+- `expires_at`
+- `created_at`, `updated_at`
+
+### discount_redemptions
+- `id` (PK)
+- `discount_code_id` (FK -> discount_codes.id)
+- `order_id` (FK -> orders.id)
+- `user_id` (FK -> users.id)
+- `created_at`
 
 ### categories
 - `id` (PK)

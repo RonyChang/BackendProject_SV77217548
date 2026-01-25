@@ -1,4 +1,4 @@
-# Postman - Pruebas API (v0.5.0)
+# Postman - Pruebas API (v0.5.2)
 
 ## Base URL
 - Local: `http://localhost:3000`
@@ -168,5 +168,37 @@ Ejemplo:
 - `POST {{baseUrl}}/api/v1/orders`
   - Requiere `Authorization: Bearer {{token}}`.
   - Crea una orden `pendingPayment` desde el carrito.
-  - Esperado: `201` con `data` y `items`.
+  - Requiere direccion completa en el perfil.
+  - Opcional: `discountCode`.
+  - Esperado: `201` con `data`, `items`, `shippingCost`, `discountAmount` y `total`.
   - Si el carrito esta vacio: `400`.
+  - Si falta direccion: `400`.
+  - Si no hay stock: `409`.
+
+Ejemplo:
+```json
+{
+  "discountCode": "ESPACIO10"
+}
+```
+
+- `POST {{baseUrl}}/api/v1/orders/:id/cancel`
+  - Requiere `Authorization: Bearer {{token}}`.
+  - Cancela una orden `pendingPayment` y libera stock reservado.
+  - Esperado: `200` con `data`.
+  - Si no existe: `404`.
+  - Si no es cancelable: `409`.
+
+### Descuentos
+- `POST {{baseUrl}}/api/v1/discounts/validate`
+  - Body (JSON): `code`, `subtotal` (en soles).
+  - Esperado: `200` con `discountAmount` y `finalSubtotal`.
+  - Si el código es inválido: `400`.
+
+Ejemplo:
+```json
+{
+  "code": "ESPACIO10",
+  "subtotal": 120
+}
+```
