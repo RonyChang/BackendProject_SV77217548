@@ -22,3 +22,4 @@ STRIPE_CANCEL_URL=https://spacegurumis.lat/cart
 - Usa llaves `sk_test`/`pk_test` en desarrollo.
 - El webhook debe apuntar al endpoint definido por el backend.
 - `STRIPE_SUCCESS_URL` y `STRIPE_CANCEL_URL` deben ser URLs del frontend.
+- Webhook sugerido: `https://api.spacegurumis.lat/api/v1/webhooks/stripe`.

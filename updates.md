@@ -137,3 +137,11 @@
 - Frontend agrega botón para pagar con Stripe desde el carrito.
 - Nuevas variables `STRIPE_SUCCESS_URL` y `STRIPE_CANCEL_URL`.
 - Postman y guía de Stripe actualizados.
+
+## Versión: v0.6.1
+
+### Cambios
+- Webhook `POST /api/v1/webhooks/stripe` con validación de firma.
+- Actualiza estados de orden/pago en eventos `checkout.session.completed` y `checkout.session.expired`.
+- Job interno que expira órdenes `pendingPayment` y libera stock reservado.
+- Expiración configurable con `PAYMENT_HOLD_MINUTES` (por defecto 3 minutos).

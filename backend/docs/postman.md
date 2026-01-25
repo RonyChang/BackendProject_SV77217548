@@ -1,4 +1,4 @@
-# Postman - Pruebas API (v0.6.0)
+# Postman - Pruebas API (v0.6.1)
 
 ## Base URL
 - Local: `http://localhost:3000`
@@ -203,6 +203,12 @@ Ejemplo:
   "orderId": 123
 }
 ```
+
+### Webhook Stripe
+- `POST {{baseUrl}}/api/v1/webhooks/stripe`
+  - Requiere header `stripe-signature` y cuerpo RAW.
+  - Eventos soportados: `checkout.session.completed`, `checkout.session.expired`.
+  - Firma invalida: `400`.
 
 ### Descuentos
 - `POST {{baseUrl}}/api/v1/discounts/validate`
