@@ -65,21 +65,44 @@ async function createStripeSession(userId, orderId) {
         };
     }
 
+    if (order.stripeSessionId) {
+        try {
+            const existing = await stripe.checkout.sessions.retrieve(order.stripeSessionId);
+            if (existing && existing.url) {
+                return {
+                    sessionId: existing.id,
+                    checkoutUrl: existing.url,
+                };
+            }
+        } catch (error) {
+            return { error: 'session' };
+        }
+
+        return { error: 'session' };
+    }
+
     const lineItems = buildLineItems(order);
     if (!lineItems.length) {
         return { error: 'total' };
     }
 
-    const session = await stripe.checkout.sessions.create({
-        mode: 'payment',
-        line_items: lineItems,
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-        client_reference_id: String(order.id),
-        metadata: {
-            orderId: String(order.id),
-            discountCode: order.discountCode || '',
+    const session = await stripe.checkout.sessions.create(
+        {
+            mode: 'payment',
+            line_items: lineItems,
+            success_url: successUrl,
+            cancel_url: cancelUrl,
+            client_reference_id: String(order.id),
+            metadata: {
+                orderId: String(order.id),
+                discountCode: order.discountCode || '',
+            },
         },
+        { idempotencyKey: `order-${order.id}` }
+    );
+
+    await orderRepository.updateOrderStripeData(order.id, {
+        stripeSessionId: session.id,
     });
 
     return {

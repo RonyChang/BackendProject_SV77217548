@@ -51,6 +51,8 @@
 - `discount_code`
 - `discount_percentage`
 - `discount_amount_cents`
+- `stripe_session_id`
+- `stripe_payment_intent_id`
 - `created_at`, `updated_at`
 
 ### order_items

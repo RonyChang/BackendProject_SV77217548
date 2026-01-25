@@ -1,4 +1,4 @@
--- Catalog schema (v0.5.2)
+-- Catalog schema (v0.6.3)
 
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
@@ -91,6 +91,8 @@ CREATE TABLE IF NOT EXISTS orders (
     discount_code VARCHAR(80),
     discount_percentage INTEGER,
     discount_amount_cents INTEGER,
+    stripe_session_id VARCHAR(200),
+    stripe_payment_intent_id VARCHAR(200),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

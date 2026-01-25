@@ -23,9 +23,13 @@ async function handleSessionCompleted(session) {
         return { ignored: true, reason: 'order_id_missing' };
     }
 
-    const updated = await orderRepository.updateOrderStatusById(orderId, {
+    const updated = await orderRepository.updateOrderStripeData(orderId, {
         paymentStatus: 'approved',
         orderStatus: 'paid',
+        stripePaymentIntentId: session && session.payment_intent
+            ? String(session.payment_intent)
+            : null,
+        stripeSessionId: session && session.id ? String(session.id) : null,
     });
 
     if (!updated) {
