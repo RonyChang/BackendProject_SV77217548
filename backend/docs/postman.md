@@ -1,4 +1,4 @@
-# Postman - Pruebas API (v0.5.2)
+# Postman - Pruebas API (v0.6.1)
 
 ## Base URL
 - Local: `http://localhost:3000`
@@ -188,6 +188,27 @@ Ejemplo:
   - Esperado: `200` con `data`.
   - Si no existe: `404`.
   - Si no es cancelable: `409`.
+
+### Pagos (Stripe)
+- `POST {{baseUrl}}/api/v1/payments/stripe/session`
+  - Requiere `Authorization: Bearer {{token}}`.
+  - Body (JSON): `orderId`.
+  - Esperado: `200` con `sessionId` y `checkoutUrl`.
+  - Si la orden no existe: `404`.
+  - Si la orden no esta `pendingPayment`: `400`.
+
+Ejemplo:
+```json
+{
+  "orderId": 123
+}
+```
+
+### Webhook Stripe
+- `POST {{baseUrl}}/api/v1/webhooks/stripe`
+  - Requiere header `stripe-signature` y cuerpo RAW.
+  - Eventos soportados: `checkout.session.completed`, `checkout.session.expired`.
+  - Firma invalida: `400`.
 
 ### Descuentos
 - `POST {{baseUrl}}/api/v1/discounts/validate`

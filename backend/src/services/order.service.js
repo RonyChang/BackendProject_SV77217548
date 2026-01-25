@@ -248,7 +248,41 @@ async function cancelOrder(userId, orderId) {
     return { id: order.id, orderStatus: 'cancelled' };
 }
 
+async function cancelExpiredOrders(holdMinutes) {
+    const minutes = Number(holdMinutes);
+    if (!Number.isFinite(minutes) || minutes <= 0) {
+        return 0;
+    }
+
+    const cutoff = new Date(Date.now() - minutes * 60 * 1000);
+    const expiredOrders = await orderRepository.findExpiredPendingOrders(cutoff);
+    if (!expiredOrders.length) {
+        return 0;
+    }
+
+    let cancelledCount = 0;
+    for (const order of expiredOrders) {
+        try {
+            await sequelize.transaction(async (transaction) => {
+                await releaseStock(order.items || [], transaction);
+                await orderRepository.updateOrderStatusById(
+                    order.id,
+                    { orderStatus: 'cancelled', paymentStatus: 'rejected' },
+                    transaction
+                );
+            });
+            cancelledCount += 1;
+        } catch (error) {
+            // No detenemos el job si una orden falla.
+            console.error('Error al cancelar orden expirada:', error.message || error);
+        }
+    }
+
+    return cancelledCount;
+}
+
 module.exports = {
     createOrder,
     cancelOrder,
+    cancelExpiredOrders,
 };

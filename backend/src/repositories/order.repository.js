@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const { Order, OrderItem } = require('../models');
 
 async function createOrder(
@@ -88,8 +89,62 @@ async function updateOrderStatus(orderId, userId, payload, transaction) {
     return order.get({ plain: true });
 }
 
+async function updateOrderStatusById(orderId, payload, transaction) {
+    const order = await Order.findOne({
+        where: { id: orderId },
+        transaction,
+        lock: transaction ? transaction.LOCK.UPDATE : undefined,
+    });
+
+    if (!order) {
+        return null;
+    }
+
+    if (payload.orderStatus) {
+        order.orderStatus = payload.orderStatus;
+    }
+
+    if (payload.paymentStatus) {
+        order.paymentStatus = payload.paymentStatus;
+    }
+
+    await order.save({ transaction });
+    return order.get({ plain: true });
+}
+
+async function findExpiredPendingOrders(beforeDate) {
+    const orders = await Order.findAll({
+        where: {
+            orderStatus: 'pendingPayment',
+            createdAt: {
+                [Op.lt]: beforeDate,
+            },
+        },
+        include: [
+            {
+                model: OrderItem,
+                as: 'items',
+                attributes: [
+                    'id',
+                    'productVariantId',
+                    'sku',
+                    'productName',
+                    'variantName',
+                    'priceCents',
+                    'quantity',
+                ],
+            },
+        ],
+        order: [['createdAt', 'ASC']],
+    });
+
+    return orders.map((order) => order.get({ plain: true }));
+}
+
 module.exports = {
     createOrder,
     findOrderWithItems,
     updateOrderStatus,
+    updateOrderStatusById,
+    findExpiredPendingOrders,
 };
