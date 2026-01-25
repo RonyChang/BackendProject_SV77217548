@@ -1616,6 +1616,17 @@
                                         )
                                         : null
                                 ),
+                                isLoggedIn
+                                    ? createElement(
+                                        'button',
+                                        {
+                                            className: 'button button--primary',
+                                            type: 'button',
+                                            onClick: handleCreateOrder,
+                                        },
+                                        'Crear orden'
+                                    )
+                                    : null,
                                 createElement(
                                     'div',
                                     { className: 'cart__summary-actions' },
