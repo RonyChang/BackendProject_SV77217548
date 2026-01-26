@@ -1,4 +1,4 @@
--- Catalog schema (v0.6.3)
+-- Catalog schema (v0.7.2)
 
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
@@ -8,10 +8,30 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT,
     google_id VARCHAR(200) UNIQUE,
     avatar_url TEXT,
+    email_verified_at TIMESTAMPTZ,
     role VARCHAR(30) NOT NULL DEFAULT 'customer',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS admin_2fa_challenges (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    code_hash TEXT NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    locked_until TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS email_verifications (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    code_hash TEXT NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS user_addresses (
@@ -144,6 +164,11 @@ CREATE TABLE IF NOT EXISTS inventory (
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
+CREATE INDEX IF NOT EXISTS idx_admin_2fa_user_id ON admin_2fa_challenges(user_id);
+CREATE INDEX IF NOT EXISTS idx_admin_2fa_expires_at ON admin_2fa_challenges(expires_at);
+CREATE INDEX IF NOT EXISTS idx_admin_2fa_locked_until ON admin_2fa_challenges(locked_until);
+CREATE INDEX IF NOT EXISTS idx_email_verifications_user_id ON email_verifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_email_verifications_expires_at ON email_verifications(expires_at);
 CREATE INDEX IF NOT EXISTS idx_user_addresses_user_id ON user_addresses(user_id);
 CREATE INDEX IF NOT EXISTS idx_carts_user_id ON carts(user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_cart_items_unique ON cart_items(cart_id, product_variant_id);

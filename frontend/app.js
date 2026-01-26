@@ -155,6 +155,10 @@
             return 'register';
         }
 
+        if (pathname === '/verify') {
+            return 'verify';
+        }
+
         if (pathname === '/profile') {
             return 'profile';
         }
@@ -185,6 +189,10 @@
         });
         const [registerStatus, setRegisterStatus] = useState('idle');
         const [registerError, setRegisterError] = useState('');
+        const [verifyForm, setVerifyForm] = useState({ email: '', code: '' });
+        const [verifyStatus, setVerifyStatus] = useState('idle');
+        const [verifyError, setVerifyError] = useState('');
+        const [verifyMessage, setVerifyMessage] = useState('');
 
         const [profileForm, setProfileForm] = useState(buildEmptyProfileForm());
         const [profileStatus, setProfileStatus] = useState('idle');
@@ -393,9 +401,16 @@
 
                 const payload = await response.json().catch(() => ({}));
                 if (!response.ok) {
-                    throw new Error(
-                        getErrorMessage(payload, 'No se pudo iniciar sesión.')
-                    );
+                    const message = getErrorMessage(payload, 'No se pudo iniciar sesión.');
+                    if (response.status === 403) {
+                        setVerifyForm({ email: loginForm.email, code: '' });
+                        setVerifyMessage(message);
+                        setVerifyError('');
+                        navigate('/verify');
+                        return;
+                    }
+
+                    throw new Error(message);
                 }
 
                 await saveSession(payload.data);
@@ -430,12 +445,48 @@
                     );
                 }
 
-                await saveSession(payload.data);
+                setVerifyForm({ email: registerForm.email, code: '' });
+                setVerifyMessage('Revisa tu correo y coloca el código de verificación.');
+                setVerifyError('');
+                navigate('/verify');
                 setRegisterForm({ email: '', password: '' });
             } catch (err) {
                 setRegisterError(err.message || 'No se pudo registrar el usuario.');
             } finally {
                 setRegisterStatus('idle');
+            }
+        }
+
+        async function handleVerifyEmail(event) {
+            event.preventDefault();
+            setVerifyStatus('loading');
+            setVerifyError('');
+            setVerifyMessage('');
+            try {
+                const response = await fetch(buildApiUrl('/api/v1/auth/verify-email'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: verifyForm.email,
+                        code: verifyForm.code,
+                    }),
+                });
+
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(
+                        getErrorMessage(payload, 'No se pudo verificar el email.')
+                    );
+                }
+
+                await saveSession(payload.data);
+                setVerifyForm({ email: '', code: '' });
+            } catch (err) {
+                setVerifyError(err.message || 'No se pudo verificar el email.');
+            } finally {
+                setVerifyStatus('idle');
             }
         }
 
@@ -1074,6 +1125,7 @@
 
         const isLoginView = view === 'login';
         const isRegisterView = view === 'register';
+        const isVerifyView = view === 'verify';
         const isProfileView = view === 'profile';
         const isCartView = view === 'cart';
         const isHomeView = view === 'home';
@@ -1344,6 +1396,106 @@
                                     navigate(isLoginView ? '/register' : '/login'),
                             },
                             isLoginView ? 'Registrarse' : 'Iniciar sesión'
+                        )
+                    )
+                )
+                : null,
+            isVerifyView
+                ? createElement(
+                    'section',
+                    { className: 'auth auth--page' },
+                    createElement(
+                        'div',
+                        { className: 'auth__header' },
+                        createElement(
+                            'h2',
+                            { className: 'section-title' },
+                            'Verificar email'
+                        ),
+                        createElement(
+                            'p',
+                            { className: 'section-note' },
+                            'Ingresa el código de 6 dígitos que enviamos a tu correo.'
+                        )
+                    ),
+                    createElement(
+                        'form',
+                        { className: 'form', onSubmit: handleVerifyEmail },
+                        createElement(
+                            'label',
+                            { className: 'field' },
+                            createElement('span', { className: 'field__label' }, 'Email'),
+                            createElement('input', {
+                                className: 'field__input',
+                                type: 'email',
+                                required: true,
+                                value: verifyForm.email,
+                                onChange: (event) =>
+                                    setVerifyForm((prev) => ({
+                                        ...prev,
+                                        email: event.target.value,
+                                    })),
+                            })
+                        ),
+                        createElement(
+                            'label',
+                            { className: 'field' },
+                            createElement('span', { className: 'field__label' }, 'Código'),
+                            createElement('input', {
+                                className: 'field__input',
+                                type: 'text',
+                                required: true,
+                                maxLength: 6,
+                                value: verifyForm.code,
+                                onChange: (event) =>
+                                    setVerifyForm((prev) => ({
+                                        ...prev,
+                                        code: event.target.value,
+                                    })),
+                            })
+                        ),
+                        verifyError
+                            ? createElement(
+                                'p',
+                                { className: 'status status--error' },
+                                verifyError
+                            )
+                            : null,
+                        verifyMessage
+                            ? createElement(
+                                'p',
+                                { className: 'status' },
+                                verifyMessage
+                            )
+                            : null,
+                        createElement(
+                            'button',
+                            {
+                                className: 'button button--primary',
+                                type: 'submit',
+                                disabled: verifyStatus === 'loading',
+                            },
+                            verifyStatus === 'loading'
+                                ? 'Verificando...'
+                                : 'Confirmar'
+                        )
+                    ),
+                    createElement(
+                        'div',
+                        { className: 'auth__switch' },
+                        createElement(
+                            'span',
+                            null,
+                            '¿Ya verificaste?'
+                        ),
+                        createElement(
+                            'button',
+                            {
+                                className: 'button button--ghost',
+                                type: 'button',
+                                onClick: () => navigate('/login'),
+                            },
+                            'Iniciar sesión'
                         )
                     )
                 )

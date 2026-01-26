@@ -159,3 +159,18 @@
 - Bootstrap de admins con ADMIN_EMAILS al iniciar el backend.
 - Crea admins faltantes con ADMIN_BOOTSTRAP_PASSWORD.
 - Usuarios admin usan el mismo login y rol admin.
+
+## Version: v0.7.1
+
+### Cambios
+- Registro ahora envia codigo de verificacion por email.
+- Login bloqueado hasta verificar el correo.
+- Nuevo endpoint `POST /api/v1/auth/verify-email`.
+- Nueva tabla `email_verifications` y columna `email_verified_at` en `users`.
+
+## Version: v0.7.2
+
+### Cambios
+- Login admin requiere codigo 2FA por email.
+- Nuevo endpoint `POST /api/v1/auth/admin/verify-2fa`.
+- Nueva tabla `admin_2fa_challenges` para desafios 2FA.

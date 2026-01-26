@@ -10,9 +10,26 @@
 - `password_hash`
 - `google_id`
 - `avatar_url`
+- `email_verified_at`
 - `role`
 - `is_active`
 - `created_at`, `updated_at`
+
+### admin_2fa_challenges
+- `id` (PK)
+- `user_id` (unique, FK -> users.id)
+- `code_hash`
+- `expires_at`
+- `attempts`
+- `locked_until`
+- `created_at`, `updated_at`
+
+### email_verifications
+- `id` (PK)
+- `user_id` (FK -> users.id)
+- `code_hash`
+- `expires_at`
+- `created_at`
 
 ### user_addresses
 - `id` (PK)
@@ -125,3 +142,4 @@
 - `password_hash` puede ser NULL si la cuenta es solo Google.
 - `google_id` es unico y puede ser NULL si la cuenta es por email.
 - `avatar_url` es opcional y viene de Google si esta disponible.
+- `email_verified_at` es NULL hasta que el usuario verifique su correo.

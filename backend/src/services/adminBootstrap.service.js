@@ -34,6 +34,9 @@ async function bootstrapAdmins() {
                 await authRepository.updateUserRole(existing.id, 'admin');
                 promoted += 1;
             }
+            if (!existing.emailVerifiedAt) {
+                await authRepository.updateUserEmailVerifiedAt(existing.id, new Date());
+            }
             continue;
         }
 
@@ -52,6 +55,7 @@ async function bootstrapAdmins() {
             role: 'admin',
             googleId: null,
             avatarUrl: null,
+            emailVerifiedAt: new Date(),
         });
         created += 1;
     }

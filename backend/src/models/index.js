@@ -33,6 +33,11 @@ const User = sequelize.define('User', {
         type: DataTypes.TEXT,
         allowNull: true,
     },
+    emailVerifiedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        field: 'email_verified_at',
+    },
     role: {
         type: DataTypes.STRING(30),
         allowNull: false,
@@ -45,6 +50,71 @@ const User = sequelize.define('User', {
     },
 }, {
     tableName: 'users',
+});
+
+const AdminTwoFactorChallenge = sequelize.define('AdminTwoFactorChallenge', {
+    id: {
+        type: DataTypes.BIGINT,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    userId: {
+        type: DataTypes.BIGINT,
+        allowNull: false,
+        unique: true,
+    },
+    codeHash: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+        field: 'code_hash',
+    },
+    expiresAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        field: 'expires_at',
+    },
+    attempts: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+    },
+    lockedUntil: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        field: 'locked_until',
+    },
+}, {
+    tableName: 'admin_2fa_challenges',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+});
+
+const EmailVerification = sequelize.define('EmailVerification', {
+    id: {
+        type: DataTypes.BIGINT,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    userId: {
+        type: DataTypes.BIGINT,
+        allowNull: false,
+    },
+    codeHash: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+        field: 'code_hash',
+    },
+    expiresAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        field: 'expires_at',
+    },
+}, {
+    tableName: 'email_verifications',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: false,
 });
 
 const UserAddress = sequelize.define('UserAddress', {
@@ -430,6 +500,12 @@ const DiscountRedemption = sequelize.define('DiscountRedemption', {
 User.hasOne(UserAddress, { foreignKey: 'userId', as: 'address' });
 UserAddress.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
+User.hasOne(AdminTwoFactorChallenge, { foreignKey: 'userId', as: 'adminTwoFactor' });
+AdminTwoFactorChallenge.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+User.hasMany(EmailVerification, { foreignKey: 'userId', as: 'emailVerifications' });
+EmailVerification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
 User.hasOne(Cart, { foreignKey: 'userId', as: 'cart' });
 Cart.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
@@ -463,6 +539,8 @@ DiscountRedemption.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 module.exports = {
     sequelize,
     User,
+    AdminTwoFactorChallenge,
+    EmailVerification,
     UserAddress,
     Category,
     Product,

@@ -1,4 +1,4 @@
-# Postman - Pruebas API (v0.6.1)
+# Postman - Pruebas API (v0.7.2)
 
 ## Base URL
 - Local: `http://localhost:3000`
@@ -64,8 +64,9 @@ Ejemplo:
 - `POST {{baseUrl}}/api/v1/auth/register`
   - Body (JSON):
     - `email`, `password` (opcional: `firstName`, `lastName`)
-  - Esperado: `201` con `data.user` y `data.token`.
-  - Si el email ya existe: `409`.
+  - Esperado: `201` con `data.verificationRequired=true`.
+  - Si el email ya existe y esta verificado: `409`.
+  - Si el email existe pero no esta verificado: `200` y reenvia codigo.
 
 Ejemplo:
 ```json
@@ -75,11 +76,34 @@ Ejemplo:
 }
 ```
 
+- `POST {{baseUrl}}/api/v1/auth/verify-email`
+  - Body (JSON):
+    - `email`, `code` (6 digitos)
+  - Esperado: `200` con `data.user` y `data.token`.
+  - Si el codigo es invalido o expiro: `400`.
+
+Ejemplo:
+```json
+{
+  "email": "demo@spacegurumis.lat",
+  "code": "123456"
+}
+```
+
 - `POST {{baseUrl}}/api/v1/auth/login`
   - Body (JSON):
     - `email`, `password`
   - Esperado: `200` con `data.user` y `data.token`.
   - Credenciales invalidas: `401`.
+  - Email no verificado: `403`.
+  - Admin: responde `data.twoFactorRequired=true` y envia codigo por email.
+
+- `POST {{baseUrl}}/api/v1/auth/admin/verify-2fa`
+  - Body (JSON):
+    - `email`, `code` (6 digitos)
+  - Esperado: `200` con `data.user` y `data.token`.
+  - Codigo invalido/expirado: `400`.
+  - Bloqueo por intentos: `423`.
 
 Ejemplo:
 ```json

@@ -2,6 +2,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const authRepository = require('../repositories/auth.repository');
+const adminTwoFactorService = require('./adminTwoFactor.service');
+const emailVerificationService = require('./emailVerification.service');
 
 function createError(status, message) {
     const error = new Error(message);
@@ -145,7 +147,16 @@ async function registerUser({ email, firstName, lastName, password }) {
     const normalizedEmail = normalizeEmail(email);
     const existing = await authRepository.findUserByEmail(normalizedEmail);
     if (existing) {
-        throw createError(409, 'El correo ya está registrado');
+        if (existing.emailVerifiedAt) {
+            throw createError(409, 'El correo ya esta registrado');
+        }
+
+        await emailVerificationService.sendVerificationCode(existing);
+        return {
+            verificationRequired: true,
+            resent: true,
+            email: existing.email,
+        };
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -159,12 +170,14 @@ async function registerUser({ email, firstName, lastName, password }) {
         role: 'customer',
         googleId: null,
         avatarUrl: null,
+        emailVerifiedAt: null,
     });
 
-    const token = signToken(newUser);
+    await emailVerificationService.sendVerificationCode(newUser);
     return {
-        user: buildUserResponse(newUser),
-        token,
+        verificationRequired: true,
+        resent: false,
+        email: newUser.email,
     };
 }
 
@@ -172,16 +185,28 @@ async function loginUser({ email, password }) {
     const normalizedEmail = normalizeEmail(email);
     const user = await authRepository.findUserByEmail(normalizedEmail);
     if (!user) {
-        throw createError(401, 'Credenciales inválidas');
+        throw createError(401, 'Credenciales invalidas');
     }
 
     if (!user.passwordHash) {
-        throw createError(401, 'Credenciales inválidas');
+        throw createError(401, 'Credenciales invalidas');
+    }
+
+    if (!user.emailVerifiedAt) {
+        throw createError(403, 'Email no verificado');
     }
 
     const matches = await bcrypt.compare(password, user.passwordHash);
     if (!matches) {
-        throw createError(401, 'Credenciales inválidas');
+        throw createError(401, 'Credenciales invalidas');
+    }
+
+    if (user.role === 'admin') {
+        await adminTwoFactorService.sendChallenge(user);
+        return {
+            twoFactorRequired: true,
+            email: user.email,
+        };
     }
 
     const token = signToken(user);
@@ -221,6 +246,9 @@ async function loginWithGoogle(code) {
                 googleId,
                 avatarUrl,
             });
+            if (user && !user.emailVerifiedAt) {
+                user = await authRepository.updateUserEmailVerifiedAt(user.id, new Date());
+            }
         } else {
             const names = buildNamesFromGoogleProfile(profile);
             user = await authRepository.createUser({
@@ -231,8 +259,13 @@ async function loginWithGoogle(code) {
                 role: 'customer',
                 googleId,
                 avatarUrl,
+                emailVerifiedAt: new Date(),
             });
         }
+    }
+
+    if (user && !user.emailVerifiedAt) {
+        user = await authRepository.updateUserEmailVerifiedAt(user.id, new Date());
     }
 
     const token = signToken(user);
@@ -242,9 +275,89 @@ async function loginWithGoogle(code) {
     };
 }
 
+async function verifyAdminTwoFactor({ email, code }) {
+    const normalizedEmail = normalizeEmail(email);
+    const user = await authRepository.findUserByEmail(normalizedEmail);
+    if (!user) {
+        throw createError(404, 'Email no registrado');
+    }
+
+    if (user.role !== 'admin') {
+        throw createError(403, 'Acceso no autorizado');
+    }
+
+    if (!user.emailVerifiedAt) {
+        throw createError(403, 'Email no verificado');
+    }
+
+    const result = await adminTwoFactorService.verifyChallenge(user, code);
+    if (!result.ok) {
+        if (result.reason === 'locked') {
+            const error = new Error('Demasiados intentos. Intenta mas tarde.');
+            error.status = 423;
+            throw error;
+        }
+
+        const message = result.reason === 'expired'
+            ? 'Codigo expirado'
+            : result.reason === 'missing'
+                ? 'Codigo no solicitado'
+                : 'Codigo invalido';
+        throw createError(400, message);
+    }
+
+    const token = signToken(user);
+    return {
+        user: buildUserResponse(user),
+        token,
+    };
+}
+
+async function verifyEmail({ email, code }) {
+    const normalizedEmail = normalizeEmail(email);
+    const user = await authRepository.findUserByEmail(normalizedEmail);
+    if (!user) {
+        throw createError(404, 'Email no registrado');
+    }
+
+    if (user.emailVerifiedAt) {
+        const token = signToken(user);
+        return {
+            user: buildUserResponse(user),
+            token,
+        };
+    }
+
+    const result = await emailVerificationService.verifyCode(user.id, code);
+    if (!result.ok) {
+        const message = result.reason === 'expired'
+            ? 'Codigo expirado'
+            : 'Codigo invalido';
+        throw createError(400, message);
+    }
+
+    const updated = await authRepository.updateUserEmailVerifiedAt(user.id, new Date());
+    const token = signToken(updated || user);
+    return {
+        user: buildUserResponse(updated || user),
+        token,
+    };
+}
+
 module.exports = {
     registerUser,
     loginUser,
     buildGoogleAuthUrl,
     loginWithGoogle,
+    verifyAdminTwoFactor,
+    verifyEmail,
 };
+
+
+
+
+
+
+
+
+

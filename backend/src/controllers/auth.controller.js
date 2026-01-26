@@ -1,4 +1,4 @@
-const authService = require('../services/auth.service');
+﻿const authService = require('../services/auth.service');
 
 function isNonEmptyString(value) {
     return typeof value === 'string' && value.trim().length > 0;
@@ -10,6 +10,14 @@ function isValidEmail(email) {
     }
 
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+function isValidVerificationCode(code) {
+    if (!isNonEmptyString(code)) {
+        return false;
+    }
+
+    return /^\d{6}$/.test(code.trim());
 }
 
 function validateRegisterPayload(payload) {
@@ -48,6 +56,20 @@ function validateLoginPayload(payload) {
     return errors;
 }
 
+function validateVerifyPayload(payload) {
+    const errors = [];
+
+    if (!isValidEmail(payload.email)) {
+        errors.push('Email inválido');
+    }
+
+    if (!isValidVerificationCode(payload.code)) {
+        errors.push('Código inválido');
+    }
+
+    return errors;
+}
+
 async function register(req, res, next) {
     try {
         const { email, firstName, lastName, password } = req.body || {};
@@ -63,7 +85,8 @@ async function register(req, res, next) {
         }
 
         const result = await authService.registerUser({ email, firstName, lastName, password });
-        return res.status(201).json({
+        const status = result.resent ? 200 : 201;
+        return res.status(status).json({
             data: result,
             message: 'OK',
             errors: [],
@@ -100,6 +123,58 @@ async function login(req, res, next) {
     }
 }
 
+async function verifyEmail(req, res, next) {
+    try {
+        const { email, code } = req.body || {};
+        const errors = validateVerifyPayload({ email, code });
+
+        if (errors.length) {
+            return res.status(400).json({
+                data: null,
+                message: 'Datos inválidos',
+                errors: errors.map((message) => ({ message })),
+                meta: {},
+            });
+        }
+
+        const result = await authService.verifyEmail({ email, code });
+        return res.status(200).json({
+            data: result,
+            message: 'OK',
+            errors: [],
+            meta: {},
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+async function verifyAdminTwoFactor(req, res, next) {
+    try {
+        const { email, code } = req.body || {};
+        const errors = validateVerifyPayload({ email, code });
+
+        if (errors.length) {
+            return res.status(400).json({
+                data: null,
+                message: 'Datos inválidos',
+                errors: errors.map((message) => ({ message })),
+                meta: {},
+            });
+        }
+
+        const result = await authService.verifyAdminTwoFactor({ email, code });
+        return res.status(200).json({
+            data: result,
+            message: 'OK',
+            errors: [],
+            meta: {},
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
 async function googleStart(req, res, next) {
     try {
         const url = authService.buildGoogleAuthUrl();
@@ -122,8 +197,8 @@ async function googleCallback(req, res, next) {
 
             return res.status(400).json({
                 data: null,
-                message: 'Datos inv?lidos',
-                errors: [{ message: 'C?digo requerido' }],
+                message: 'Datos inválidos',
+                errors: [{ message: 'Código requerido' }],
                 meta: {},
             });
         }
@@ -146,7 +221,7 @@ async function googleCallback(req, res, next) {
         if (process.env.FRONTEND_BASE_URL) {
             const message = error && error.message
                 ? error.message
-                : 'No se pudo iniciar sesion con Google';
+                : 'No se pudo iniciar sesión con Google';
             const url = new URL('/login', process.env.FRONTEND_BASE_URL);
             url.hash = `error=${encodeURIComponent(message)}`;
             return res.redirect(url.toString());
@@ -159,6 +234,8 @@ async function googleCallback(req, res, next) {
 module.exports = {
     register,
     login,
+    verifyEmail,
+    verifyAdminTwoFactor,
     googleStart,
     googleCallback,
 };
