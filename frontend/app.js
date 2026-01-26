@@ -159,6 +159,10 @@
             return 'verify';
         }
 
+        if (pathname === '/admin-2fa') {
+            return 'admin-2fa';
+        }
+
         if (pathname === '/profile') {
             return 'profile';
         }
@@ -195,6 +199,10 @@
         const [verifyMessage, setVerifyMessage] = useState('');
         const [resendStatus, setResendStatus] = useState('idle');
         const [resendMessage, setResendMessage] = useState('');
+        const [adminTwoFactorForm, setAdminTwoFactorForm] = useState({ email: '', code: '' });
+        const [adminTwoFactorStatus, setAdminTwoFactorStatus] = useState('idle');
+        const [adminTwoFactorError, setAdminTwoFactorError] = useState('');
+        const [adminTwoFactorMessage, setAdminTwoFactorMessage] = useState('');
 
         const [profileForm, setProfileForm] = useState(buildEmptyProfileForm());
         const [profileStatus, setProfileStatus] = useState('idle');
@@ -337,6 +345,10 @@
             clearGuestCart();
             setAuthToken('');
             setProfileForm(buildEmptyProfileForm());
+            setAdminTwoFactorForm({ email: '', code: '' });
+            setAdminTwoFactorError('');
+            setAdminTwoFactorMessage('');
+            setAdminTwoFactorStatus('idle');
             setCartItems([]);
             setCartError('');
             setCartSyncError('');
@@ -413,6 +425,17 @@
                     }
 
                     throw new Error(message);
+                }
+
+                if (payload && payload.data && payload.data.twoFactorRequired) {
+                    setAdminTwoFactorForm({
+                        email: payload.data.email || loginForm.email,
+                        code: '',
+                    });
+                    setAdminTwoFactorMessage('Ingresa el código enviado a tu correo.');
+                    setAdminTwoFactorError('');
+                    navigate('/admin-2fa');
+                    return;
                 }
 
                 await saveSession(payload.data);
@@ -521,6 +544,39 @@
                 setResendMessage(err.message || 'No se pudo reenviar el código.');
             } finally {
                 setResendStatus('idle');
+            }
+        }
+
+        async function handleAdminTwoFactor(event) {
+            event.preventDefault();
+            setAdminTwoFactorStatus('loading');
+            setAdminTwoFactorError('');
+            setAdminTwoFactorMessage('');
+            try {
+                const response = await fetch(buildApiUrl('/api/v1/auth/admin/verify-2fa'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: adminTwoFactorForm.email,
+                        code: adminTwoFactorForm.code,
+                    }),
+                });
+
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(
+                        getErrorMessage(payload, 'No se pudo validar el código.')
+                    );
+                }
+
+                await saveSession(payload.data);
+                setAdminTwoFactorForm({ email: '', code: '' });
+            } catch (err) {
+                setAdminTwoFactorError(err.message || 'No se pudo validar el código.');
+            } finally {
+                setAdminTwoFactorStatus('idle');
             }
         }
 
@@ -1160,6 +1216,7 @@
         const isLoginView = view === 'login';
         const isRegisterView = view === 'register';
         const isVerifyView = view === 'verify';
+        const isAdminTwoFactorView = view === 'admin-2fa';
         const isProfileView = view === 'profile';
         const isCartView = view === 'cart';
         const isHomeView = view === 'home';
@@ -1549,6 +1606,106 @@
                                 onClick: () => navigate('/login'),
                             },
                             'Iniciar sesión'
+                        )
+                    )
+                )
+                : null,
+            isAdminTwoFactorView
+                ? createElement(
+                    'section',
+                    { className: 'auth auth--page' },
+                    createElement(
+                        'div',
+                        { className: 'auth__header' },
+                        createElement(
+                            'h2',
+                            { className: 'section-title' },
+                            'Verificación admin'
+                        ),
+                        createElement(
+                            'p',
+                            { className: 'section-note' },
+                            'Ingresa el código 2FA enviado a tu correo.'
+                        )
+                    ),
+                    createElement(
+                        'form',
+                        { className: 'form', onSubmit: handleAdminTwoFactor },
+                        createElement(
+                            'label',
+                            { className: 'field' },
+                            createElement('span', { className: 'field__label' }, 'Email'),
+                            createElement('input', {
+                                className: 'field__input',
+                                type: 'email',
+                                required: true,
+                                value: adminTwoFactorForm.email,
+                                onChange: (event) =>
+                                    setAdminTwoFactorForm((prev) => ({
+                                        ...prev,
+                                        email: event.target.value,
+                                    })),
+                            })
+                        ),
+                        createElement(
+                            'label',
+                            { className: 'field' },
+                            createElement('span', { className: 'field__label' }, 'Código'),
+                            createElement('input', {
+                                className: 'field__input',
+                                type: 'text',
+                                required: true,
+                                maxLength: 6,
+                                value: adminTwoFactorForm.code,
+                                onChange: (event) =>
+                                    setAdminTwoFactorForm((prev) => ({
+                                        ...prev,
+                                        code: event.target.value,
+                                    })),
+                            })
+                        ),
+                        adminTwoFactorError
+                            ? createElement(
+                                'p',
+                                { className: 'status status--error' },
+                                adminTwoFactorError
+                            )
+                            : null,
+                        adminTwoFactorMessage
+                            ? createElement(
+                                'p',
+                                { className: 'status' },
+                                adminTwoFactorMessage
+                            )
+                            : null,
+                        createElement(
+                            'button',
+                            {
+                                className: 'button button--primary',
+                                type: 'submit',
+                                disabled: adminTwoFactorStatus === 'loading',
+                            },
+                            adminTwoFactorStatus === 'loading'
+                                ? 'Validando...'
+                                : 'Confirmar'
+                        )
+                    ),
+                    createElement(
+                        'div',
+                        { className: 'auth__switch' },
+                        createElement(
+                            'span',
+                            null,
+                            '¿No recibiste el código?'
+                        ),
+                        createElement(
+                            'button',
+                            {
+                                className: 'button button--ghost',
+                                type: 'button',
+                                onClick: () => navigate('/login'),
+                            },
+                            'Volver a login'
                         )
                     )
                 )

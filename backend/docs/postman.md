@@ -1,4 +1,4 @@
-# Postman - Pruebas API (v0.7.4)
+# Postman - Pruebas API (v0.7.5)
 
 ## Base URL
 - Local: `http://localhost:3000`
@@ -220,6 +220,42 @@ Ejemplo:
   - Esperado: `200` con `data`.
   - Si no existe: `404`.
   - Si no es cancelable: `409`.
+
+### Admin
+- `GET {{baseUrl}}/api/v1/admin/orders`
+  - Requiere `Authorization: Bearer {{tokenAdmin}}`.
+  - Solo admin, si no: `403`.
+  - Filtros opcionales:
+    - `orderStatus`, `paymentStatus`, `email`
+    - `page`, `pageSize`
+  - Esperado: `200` con `data.items` y `meta.total`.
+
+- `PATCH {{baseUrl}}/api/v1/admin/orders/:id/status`
+  - Requiere `Authorization: Bearer {{tokenAdmin}}`.
+  - Body (JSON): `orderStatus`.
+  - Esperado: `200` con `data`.
+  - Si no existe: `404`.
+
+Ejemplo:
+```json
+{
+  "orderStatus": "shipped"
+}
+```
+
+- `PATCH {{baseUrl}}/api/v1/admin/variants/:sku/stock`
+  - Requiere `Authorization: Bearer {{tokenAdmin}}`.
+  - Body (JSON): `stock` (entero >= 0).
+  - Esperado: `200` con `data`.
+  - Si el SKU no existe: `404`.
+  - Si `stock < reserved`: `409`.
+
+Ejemplo:
+```json
+{
+  "stock": 12
+}
+```
 
 ### Pagos (Stripe)
 - `POST {{baseUrl}}/api/v1/payments/stripe/session`

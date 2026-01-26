@@ -185,3 +185,11 @@
 
 ### Cambios
 - Cooldown de 60 segundos para reenviar el codigo de verificacion.
+
+## Version: v0.7.5
+
+### Cambios
+- Endpoints admin para listar ordenes con filtros y paginacion.
+- Endpoint admin para actualizar estado de orden.
+- Endpoint admin para actualizar stock de variantes.
+- Middleware `adminRequired` para validar rol admin.
