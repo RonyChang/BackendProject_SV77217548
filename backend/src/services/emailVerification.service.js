@@ -47,6 +47,19 @@ async function sendVerificationCode(user) {
         throw error;
     }
 
+    const latest = await emailVerificationRepository.findLatestByUserId(user.id);
+    if (latest) {
+        const lastSentAt = new Date(latest.createdAt || latest.created_at);
+        if (!Number.isNaN(lastSentAt.getTime())) {
+            const elapsedMs = Date.now() - lastSentAt.getTime();
+            if (elapsedMs < 60000) {
+                const error = new Error('Espera 60 segundos para reenviar el codigo.');
+                error.status = 429;
+                throw error;
+            }
+        }
+    }
+
     const ttlMinutes = getVerificationTtlMinutes();
     const code = generateCode();
     const codeHash = await bcrypt.hash(code, 10);

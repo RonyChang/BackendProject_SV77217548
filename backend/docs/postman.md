@@ -1,4 +1,4 @@
-# Postman - Pruebas API (v0.7.2)
+# Postman - Pruebas API (v0.7.4)
 
 ## Base URL
 - Local: `http://localhost:3000`
@@ -104,6 +104,7 @@ Ejemplo:
   - Esperado: `200` con `data.sent=true`.
   - Email verificado: `409`.
   - Email inexistente: `404`.
+  - Cooldown activo: `429`.
 
 - `POST {{baseUrl}}/api/v1/auth/admin/verify-2fa`
   - Body (JSON):

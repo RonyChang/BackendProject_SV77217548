@@ -180,3 +180,8 @@
 ### Cambios
 - Reenvio de codigo de verificacion via `POST /api/v1/auth/resend-verification`.
 - Boton de reenvio en la pantalla de verificacion.
+
+## Version: v0.7.4
+
+### Cambios
+- Cooldown de 60 segundos para reenviar el codigo de verificacion.
