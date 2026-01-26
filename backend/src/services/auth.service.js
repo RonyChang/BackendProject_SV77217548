@@ -313,6 +313,21 @@ async function verifyAdminTwoFactor({ email, code }) {
     };
 }
 
+async function resendVerification({ email }) {
+    const normalizedEmail = normalizeEmail(email);
+    const user = await authRepository.findUserByEmail(normalizedEmail);
+    if (!user) {
+        throw createError(404, 'Email no registrado');
+    }
+
+    if (user.emailVerifiedAt) {
+        throw createError(409, 'Email ya verificado');
+    }
+
+    await emailVerificationService.sendVerificationCode(user);
+    return { sent: true };
+}
+
 async function verifyEmail({ email, code }) {
     const normalizedEmail = normalizeEmail(email);
     const user = await authRepository.findUserByEmail(normalizedEmail);
@@ -350,6 +365,7 @@ module.exports = {
     buildGoogleAuthUrl,
     loginWithGoogle,
     verifyAdminTwoFactor,
+    resendVerification,
     verifyEmail,
 };
 

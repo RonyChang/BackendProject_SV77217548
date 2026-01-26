@@ -193,6 +193,8 @@
         const [verifyStatus, setVerifyStatus] = useState('idle');
         const [verifyError, setVerifyError] = useState('');
         const [verifyMessage, setVerifyMessage] = useState('');
+        const [resendStatus, setResendStatus] = useState('idle');
+        const [resendMessage, setResendMessage] = useState('');
 
         const [profileForm, setProfileForm] = useState(buildEmptyProfileForm());
         const [profileStatus, setProfileStatus] = useState('idle');
@@ -487,6 +489,38 @@
                 setVerifyError(err.message || 'No se pudo verificar el email.');
             } finally {
                 setVerifyStatus('idle');
+            }
+        }
+
+        async function handleResendVerification() {
+            if (!verifyForm.email) {
+                setResendMessage('Ingresa tu email primero.');
+                return;
+            }
+
+            setResendStatus('loading');
+            setResendMessage('');
+            try {
+                const response = await fetch(buildApiUrl('/api/v1/auth/resend-verification'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email: verifyForm.email }),
+                });
+
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(
+                        getErrorMessage(payload, 'No se pudo reenviar el código.')
+                    );
+                }
+
+                setResendMessage('Código reenviado. Revisa tu correo.');
+            } catch (err) {
+                setResendMessage(err.message || 'No se pudo reenviar el código.');
+            } finally {
+                setResendStatus('idle');
             }
         }
 
@@ -1468,6 +1502,13 @@
                                 verifyMessage
                             )
                             : null,
+                        resendMessage
+                            ? createElement(
+                                'p',
+                                { className: 'status' },
+                                resendMessage
+                            )
+                            : null,
                         createElement(
                             'button',
                             {
@@ -1478,6 +1519,18 @@
                             verifyStatus === 'loading'
                                 ? 'Verificando...'
                                 : 'Confirmar'
+                        ),
+                        createElement(
+                            'button',
+                            {
+                                className: 'button button--ghost',
+                                type: 'button',
+                                onClick: handleResendVerification,
+                                disabled: resendStatus === 'loading',
+                            },
+                            resendStatus === 'loading'
+                                ? 'Reenviando...'
+                                : 'Reenviar código'
                         )
                     ),
                     createElement(

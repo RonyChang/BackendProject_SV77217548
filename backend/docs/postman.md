@@ -98,6 +98,13 @@ Ejemplo:
   - Email no verificado: `403`.
   - Admin: responde `data.twoFactorRequired=true` y envia codigo por email.
 
+- `POST {{baseUrl}}/api/v1/auth/resend-verification`
+  - Body (JSON):
+    - `email`
+  - Esperado: `200` con `data.sent=true`.
+  - Email verificado: `409`.
+  - Email inexistente: `404`.
+
 - `POST {{baseUrl}}/api/v1/auth/admin/verify-2fa`
   - Body (JSON):
     - `email`, `code` (6 digitos)

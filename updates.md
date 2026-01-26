@@ -174,3 +174,9 @@
 - Login admin requiere codigo 2FA por email.
 - Nuevo endpoint `POST /api/v1/auth/admin/verify-2fa`.
 - Nueva tabla `admin_2fa_challenges` para desafios 2FA.
+
+## Version: v0.7.3
+
+### Cambios
+- Reenvio de codigo de verificacion via `POST /api/v1/auth/resend-verification`.
+- Boton de reenvio en la pantalla de verificacion.

@@ -70,6 +70,16 @@ function validateVerifyPayload(payload) {
     return errors;
 }
 
+function validateResendPayload(payload) {
+    const errors = [];
+
+    if (!isValidEmail(payload.email)) {
+        errors.push('Email inválido');
+    }
+
+    return errors;
+}
+
 async function register(req, res, next) {
     try {
         const { email, firstName, lastName, password } = req.body || {};
@@ -175,6 +185,32 @@ async function verifyAdminTwoFactor(req, res, next) {
     }
 }
 
+async function resendVerification(req, res, next) {
+    try {
+        const { email } = req.body || {};
+        const errors = validateResendPayload({ email });
+
+        if (errors.length) {
+            return res.status(400).json({
+                data: null,
+                message: 'Datos inválidos',
+                errors: errors.map((message) => ({ message })),
+                meta: {},
+            });
+        }
+
+        const result = await authService.resendVerification({ email });
+        return res.status(200).json({
+            data: result,
+            message: 'OK',
+            errors: [],
+            meta: {},
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
 async function googleStart(req, res, next) {
     try {
         const url = authService.buildGoogleAuthUrl();
@@ -236,6 +272,7 @@ module.exports = {
     login,
     verifyEmail,
     verifyAdminTwoFactor,
+    resendVerification,
     googleStart,
     googleCallback,
 };
