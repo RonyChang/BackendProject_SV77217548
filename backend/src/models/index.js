@@ -306,6 +306,14 @@ const Order = sequelize.define('Order', {
         type: DataTypes.INTEGER,
         allowNull: true,
     },
+    stripeSessionId: {
+        type: DataTypes.STRING(200),
+        allowNull: true,
+    },
+    stripePaymentIntentId: {
+        type: DataTypes.STRING(200),
+        allowNull: true,
+    },
 }, {
     tableName: 'orders',
 });

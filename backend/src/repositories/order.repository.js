@@ -112,6 +112,37 @@ async function updateOrderStatusById(orderId, payload, transaction) {
     return order.get({ plain: true });
 }
 
+async function updateOrderStripeData(orderId, payload, transaction) {
+    const order = await Order.findOne({
+        where: { id: orderId },
+        transaction,
+        lock: transaction ? transaction.LOCK.UPDATE : undefined,
+    });
+
+    if (!order) {
+        return null;
+    }
+
+    if (payload.stripeSessionId) {
+        order.stripeSessionId = payload.stripeSessionId;
+    }
+
+    if (payload.stripePaymentIntentId) {
+        order.stripePaymentIntentId = payload.stripePaymentIntentId;
+    }
+
+    if (payload.orderStatus) {
+        order.orderStatus = payload.orderStatus;
+    }
+
+    if (payload.paymentStatus) {
+        order.paymentStatus = payload.paymentStatus;
+    }
+
+    await order.save({ transaction });
+    return order.get({ plain: true });
+}
+
 async function findExpiredPendingOrders(beforeDate) {
     const orders = await Order.findAll({
         where: {
@@ -146,5 +177,6 @@ module.exports = {
     findOrderWithItems,
     updateOrderStatus,
     updateOrderStatusById,
+    updateOrderStripeData,
     findExpiredPendingOrders,
 };

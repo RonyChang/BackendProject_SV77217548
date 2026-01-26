@@ -59,6 +59,15 @@ async function createStripeSession(req, res, next) {
             });
         }
 
+        if (result.error === 'session') {
+            return res.status(409).json({
+                data: null,
+                message: 'Sesion de Stripe no disponible',
+                errors: [{ message: 'La sesion de pago no esta disponible' }],
+                meta: {},
+            });
+        }
+
         if (result.error === 'config') {
             return res.status(500).json({
                 data: null,

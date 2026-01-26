@@ -145,3 +145,17 @@
 - Actualiza estados de orden/pago en eventos `checkout.session.completed` y `checkout.session.expired`.
 - Job interno que expira órdenes `pendingPayment` y libera stock reservado.
 - Expiración configurable con `PAYMENT_HOLD_MINUTES` (por defecto 3 minutos).
+
+## Version: v0.6.2
+
+### Cambios
+- Orden guarda stripe_session_id y stripe_payment_intent_id.
+- Creacion de sesion Stripe idempotente y reutiliza sesion existente.
+- Webhook persiste payment_intent en la orden.
+
+## Version: v0.7.0
+
+### Cambios
+- Bootstrap de admins con ADMIN_EMAILS al iniciar el backend.
+- Crea admins faltantes con ADMIN_BOOTSTRAP_PASSWORD.
+- Usuarios admin usan el mismo login y rol admin.
