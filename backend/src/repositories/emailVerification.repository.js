@@ -13,7 +13,7 @@ async function createVerification({ userId, codeHash, expiresAt }) {
 async function findLatestByUserId(userId) {
     const record = await EmailVerification.findOne({
         where: { userId },
-        order: [['createdAt', 'DESC']],
+        order: [['created_at', 'DESC']],
     });
 
     return record ? record.get({ plain: true }) : null;
