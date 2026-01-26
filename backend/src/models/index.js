@@ -384,6 +384,11 @@ const Order = sequelize.define('Order', {
         type: DataTypes.STRING(200),
         allowNull: true,
     },
+    paymentEmailSentAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        field: 'payment_email_sent_at',
+    },
 }, {
     tableName: 'orders',
 });

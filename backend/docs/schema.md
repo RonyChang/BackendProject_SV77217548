@@ -70,6 +70,7 @@
 - `discount_amount_cents`
 - `stripe_session_id`
 - `stripe_payment_intent_id`
+- `payment_email_sent_at`
 - `created_at`, `updated_at`
 
 ### order_items

@@ -113,6 +113,7 @@ CREATE TABLE IF NOT EXISTS orders (
     discount_amount_cents INTEGER,
     stripe_session_id VARCHAR(200),
     stripe_payment_intent_id VARCHAR(200),
+    payment_email_sent_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

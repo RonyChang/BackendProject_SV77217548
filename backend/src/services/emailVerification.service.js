@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
-const nodemailer = require('nodemailer');
 
 const emailVerificationRepository = require('../repositories/emailVerification.repository');
+const resendClient = require('./resendClient.service');
 
 function getVerificationTtlMinutes() {
     const raw = Number(process.env.EMAIL_VERIFICATION_TTL_MINUTES);
@@ -10,30 +10,6 @@ function getVerificationTtlMinutes() {
     }
 
     return 10;
-}
-
-function buildTransport() {
-    const host = process.env.SMTP_HOST || '';
-    const port = Number(process.env.SMTP_PORT);
-    const user = process.env.SMTP_USER || '';
-    const pass = process.env.SMTP_PASS || '';
-
-    if (!host || !port || !user || !pass) {
-        const error = new Error('SMTP no configurado');
-        error.status = 500;
-        throw error;
-    }
-
-    return nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: { user, pass },
-    });
-}
-
-function buildFromAddress() {
-    return process.env.EMAIL_FROM || process.env.SMTP_USER || 'no-reply@spacegurumis.lat';
 }
 
 function generateCode() {
@@ -72,13 +48,16 @@ async function sendVerificationCode(user) {
         expiresAt,
     });
 
-    const transporter = buildTransport();
-    await transporter.sendMail({
-        from: buildFromAddress(),
-        to: user.email,
-        subject: 'Codigo de verificacion',
-        text: `Tu codigo de verificacion es ${code}. Expira en ${ttlMinutes} minutos.`,
-    });
+    try {
+        await resendClient.sendEmail({
+            to: user.email,
+            subject: 'Codigo de verificacion',
+            text: `Tu codigo de verificacion es ${code}. Expira en ${ttlMinutes} minutos.`,
+        });
+    } catch (error) {
+        error.status = error.status || 500;
+        throw error;
+    }
 
     return { expiresAt };
 }

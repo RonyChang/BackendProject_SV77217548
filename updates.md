@@ -193,3 +193,11 @@
 - Endpoint admin para actualizar estado de orden.
 - Endpoint admin para actualizar stock de variantes.
 - Middleware `adminRequired` para validar rol admin.
+
+## Version: v0.8.0
+
+### Cambios
+- Email de confirmacion de pago via Resend.
+- Nueva columna `orders.payment_email_sent_at` para idempotencia.
+- Nuevo doc `backend/docs/setup-resend.md` y variables RESEND en .env.example.
+- Verificacion de email y 2FA admin ahora se envian con Resend.

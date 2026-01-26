@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
-const nodemailer = require('nodemailer');
 
 const adminTwoFactorRepository = require('../repositories/adminTwoFactor.repository');
+const resendClient = require('./resendClient.service');
 
 function getTtlMinutes() {
     const raw = Number(process.env.ADMIN_2FA_TTL_MINUTES);
@@ -28,30 +28,6 @@ function getLockMinutes() {
     }
 
     return 15;
-}
-
-function buildTransport() {
-    const host = process.env.SMTP_HOST || '';
-    const port = Number(process.env.SMTP_PORT);
-    const user = process.env.SMTP_USER || '';
-    const pass = process.env.SMTP_PASS || '';
-
-    if (!host || !port || !user || !pass) {
-        const error = new Error('SMTP no configurado');
-        error.status = 500;
-        throw error;
-    }
-
-    return nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: { user, pass },
-    });
-}
-
-function buildFromAddress() {
-    return process.env.EMAIL_FROM || process.env.SMTP_USER || 'no-reply@spacegurumis.lat';
 }
 
 function generateCode() {
@@ -95,13 +71,16 @@ async function sendChallenge(user) {
         expiresAt,
     });
 
-    const transporter = buildTransport();
-    await transporter.sendMail({
-        from: buildFromAddress(),
-        to: user.email,
-        subject: 'Codigo 2FA de administrador',
-        text: `Tu codigo 2FA es ${code}. Expira en ${ttlMinutes} minutos.`,
-    });
+    try {
+        await resendClient.sendEmail({
+            to: user.email,
+            subject: 'Codigo 2FA de administrador',
+            text: `Tu codigo 2FA es ${code}. Expira en ${ttlMinutes} minutos.`,
+        });
+    } catch (error) {
+        error.status = error.status || 500;
+        throw error;
+    }
 }
 
 async function verifyChallenge(user, code) {

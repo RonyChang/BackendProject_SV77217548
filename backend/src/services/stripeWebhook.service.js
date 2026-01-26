@@ -1,4 +1,5 @@
 const orderRepository = require('../repositories/order.repository');
+const paymentEmailService = require('./paymentEmail.service');
 
 function parseOrderId(session) {
     if (!session) {
@@ -34,6 +35,12 @@ async function handleSessionCompleted(session) {
 
     if (!updated) {
         return { ignored: true, reason: 'order_not_found' };
+    }
+
+    try {
+        await paymentEmailService.sendPaymentApprovedEmail(orderId);
+    } catch (error) {
+        console.error('Error al enviar email de pago:', error.message || error);
     }
 
     return { handled: true, orderId };

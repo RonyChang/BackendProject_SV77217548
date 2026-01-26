@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Order, OrderItem } = require('../models');
+const { Order, OrderItem, User } = require('../models');
 
 async function createOrder(
     {
@@ -172,6 +172,52 @@ async function findExpiredPendingOrders(beforeDate) {
     return orders.map((order) => order.get({ plain: true }));
 }
 
+async function findOrderForPaymentEmail(orderId) {
+    const order = await Order.findOne({
+        where: { id: orderId },
+        include: [
+            {
+                model: User,
+                as: 'user',
+                attributes: ['id', 'email', 'firstName', 'lastName'],
+                required: false,
+            },
+            {
+                model: OrderItem,
+                as: 'items',
+                attributes: [
+                    'id',
+                    'productVariantId',
+                    'sku',
+                    'productName',
+                    'variantName',
+                    'priceCents',
+                    'quantity',
+                ],
+                required: false,
+            },
+        ],
+    });
+
+    return order ? order.get({ plain: true }) : null;
+}
+
+async function updateOrderPaymentEmailSentAt(orderId, sentAt, transaction) {
+    const order = await Order.findOne({
+        where: { id: orderId },
+        transaction,
+        lock: transaction ? transaction.LOCK.UPDATE : undefined,
+    });
+
+    if (!order) {
+        return null;
+    }
+
+    order.paymentEmailSentAt = sentAt;
+    await order.save({ transaction });
+    return order.get({ plain: true });
+}
+
 module.exports = {
     createOrder,
     findOrderWithItems,
@@ -179,4 +225,6 @@ module.exports = {
     updateOrderStatusById,
     updateOrderStripeData,
     findExpiredPendingOrders,
+    findOrderForPaymentEmail,
+    updateOrderPaymentEmailSentAt,
 };

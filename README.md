@@ -33,6 +33,9 @@ Abrir en el navegador:
 http://localhost:5173
 ```
 
+## Docs
+- Guias de configuracion en `backend/docs/` (incluye `setup-resend.md`).
+
 ## Endpoints principales
 Salud:
 - `GET /health`
