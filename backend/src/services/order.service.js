@@ -108,6 +108,21 @@ function mapOrderItems(items) {
     }));
 }
 
+function mapOrderSummary(order) {
+    return {
+        id: order.id,
+        orderStatus: order.orderStatus,
+        paymentStatus: order.paymentStatus,
+        subtotal: centsToSoles(order.subtotalCents),
+        shippingCost: centsToSoles(order.shippingCostCents),
+        discountCode: order.discountCode,
+        discountPercentage: order.discountPercentage,
+        discountAmount: centsToSoles(order.discountAmountCents),
+        total: centsToSoles(order.totalCents),
+        createdAt: order.createdAt,
+    };
+}
+
 async function createOrder(userId, discountCode) {
     const address = await profileRepository.findAddressByUserId(userId);
     if (!address || !address.district) {
@@ -225,6 +240,49 @@ async function createOrder(userId, discountCode) {
     };
 }
 
+async function listOrders(userId, pagination) {
+    const [rows, total] = await Promise.all([
+        orderRepository.fetchOrdersByUser(userId, pagination),
+        orderRepository.fetchOrdersCountByUser(userId),
+    ]);
+
+    const items = rows.map(mapOrderSummary);
+    const page = pagination && pagination.page ? pagination.page : 1;
+    const pageSize = pagination && pagination.pageSize ? pagination.pageSize : 10;
+    const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
+
+    return {
+        items,
+        meta: {
+            total,
+            page,
+            pageSize,
+            totalPages,
+        },
+    };
+}
+
+async function getOrderDetail(userId, orderId) {
+    const order = await orderRepository.findOrderWithItems(orderId, userId);
+    if (!order) {
+        return { error: 'not_found' };
+    }
+
+    return {
+        id: order.id,
+        orderStatus: order.orderStatus,
+        paymentStatus: order.paymentStatus,
+        subtotal: centsToSoles(order.subtotalCents),
+        shippingCost: centsToSoles(order.shippingCostCents),
+        discountCode: order.discountCode,
+        discountPercentage: order.discountPercentage,
+        discountAmount: centsToSoles(order.discountAmountCents),
+        total: centsToSoles(order.totalCents),
+        createdAt: order.createdAt,
+        items: Array.isArray(order.items) ? mapOrderItems(order.items) : [],
+    };
+}
+
 async function cancelOrder(userId, orderId) {
     const order = await orderRepository.findOrderWithItems(orderId, userId);
     if (!order) {
@@ -283,6 +341,8 @@ async function cancelExpiredOrders(holdMinutes) {
 
 module.exports = {
     createOrder,
+    listOrders,
+    getOrderDetail,
     cancelOrder,
     cancelExpiredOrders,
 };

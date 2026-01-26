@@ -1,5 +1,91 @@
 const orderService = require('../services/order.service');
 
+function getSingleValue(value) {
+    return Array.isArray(value) ? value[0] : value;
+}
+
+function parsePagination(req) {
+    const rawPage = getSingleValue(req.query.page);
+    const rawPageSize = getSingleValue(req.query.pageSize);
+
+    const parsedPage = rawPage ? Number(rawPage) : NaN;
+    const parsedPageSize = rawPageSize ? Number(rawPageSize) : NaN;
+
+    const page = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+    const pageSize = Number.isNaN(parsedPageSize) || parsedPageSize < 1 ? 10 : parsedPageSize;
+
+    return { page, pageSize };
+}
+
+async function listOrders(req, res, next) {
+    try {
+        const userId = req.user && req.user.id ? req.user.id : null;
+        if (!userId) {
+            return res.status(401).json({
+                data: null,
+                message: 'No autorizado',
+                errors: [{ message: 'Token requerido' }],
+                meta: {},
+            });
+        }
+
+        const pagination = parsePagination(req);
+        const { items, meta } = await orderService.listOrders(userId, pagination);
+
+        return res.status(200).json({
+            data: items,
+            message: 'OK',
+            errors: [],
+            meta,
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+async function getOrderDetail(req, res, next) {
+    try {
+        const userId = req.user && req.user.id ? req.user.id : null;
+        if (!userId) {
+            return res.status(401).json({
+                data: null,
+                message: 'No autorizado',
+                errors: [{ message: 'Token requerido' }],
+                meta: {},
+            });
+        }
+
+        const orderId = Number(req.params.id);
+        if (!Number.isFinite(orderId)) {
+            return res.status(400).json({
+                data: null,
+                message: 'Orden inválida',
+                errors: [{ message: 'Orden inválida' }],
+                meta: {},
+            });
+        }
+
+        const result = await orderService.getOrderDetail(userId, orderId);
+        if (result.error === 'not_found') {
+            return res.status(404).json({
+                data: null,
+                message: 'Orden no encontrada',
+                errors: [{ message: 'Orden no encontrada' }],
+                meta: {},
+            });
+        }
+
+        return res.status(200).json({
+            data: result,
+            message: 'OK',
+            errors: [],
+            meta: {},
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
 async function createOrder(req, res, next) {
     try {
         const userId = req.user && req.user.id ? req.user.id : null;
@@ -116,6 +202,8 @@ async function cancelOrder(req, res, next) {
 }
 
 module.exports = {
+    listOrders,
+    getOrderDetail,
     createOrder,
     cancelOrder,
 };

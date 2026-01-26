@@ -1,4 +1,4 @@
-# Postman - Pruebas API (v0.8.2)
+# Postman - Pruebas API (v0.8.3)
 
 ## Base URL
 - Local: `http://localhost:3000`
@@ -197,6 +197,18 @@ Ejemplo:
   - Vacia el carrito del usuario.
 
 ### Ordenes
+- `GET {{baseUrl}}/api/v1/orders`
+  - Requiere `Authorization: Bearer {{token}}`.
+  - Lista las ordenes del usuario autenticado.
+  - Soporta `page` y `pageSize`.
+  - Esperado: `200` con `data[]` y `meta.total`.
+
+- `GET {{baseUrl}}/api/v1/orders/:id`
+  - Requiere `Authorization: Bearer {{token}}`.
+  - Devuelve el detalle del pedido con items.
+  - Esperado: `200` con `data`.
+  - Si no pertenece al usuario: `404`.
+
 - `POST {{baseUrl}}/api/v1/orders`
   - Requiere `Authorization: Bearer {{token}}`.
   - Crea una orden `pendingPayment` desde el carrito.

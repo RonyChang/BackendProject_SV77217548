@@ -210,3 +210,10 @@
 - Boton de WhatsApp para consultar por producto.
 - Boton de WhatsApp para consultar por orden creada.
 - Numero y mensaje configurables desde `frontend/index.html`.
+
+## Version: v0.8.2
+
+### Cambios
+- Listado de pedidos del usuario en `GET /api/v1/orders` con paginacion.
+- Detalle de pedido propio en `GET /api/v1/orders/:id` con items y totales.
+- Frontend agrega vista "Mis pedidos" con detalle y estados.

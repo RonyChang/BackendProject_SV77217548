@@ -62,6 +62,19 @@
         return `S/ ${Number(value).toFixed(2)}`;
     }
 
+    function formatDate(value) {
+        if (!value) {
+            return '-';
+        }
+
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return '-';
+        }
+
+        return date.toLocaleDateString('es-PE');
+    }
+
     function getVariantTitle(variant) {
         const baseName = variant && variant.product ? variant.product.name : 'Producto';
         if (variant && variant.variantName) {
@@ -213,6 +226,10 @@
             return 'cart';
         }
 
+        if (pathname === '/orders') {
+            return 'orders';
+        }
+
         return 'home';
     }
 
@@ -266,6 +283,13 @@
         const [discountMessage, setDiscountMessage] = useState('');
         const [discountAmount, setDiscountAmount] = useState(null);
         const [discountedSubtotal, setDiscountedSubtotal] = useState(null);
+        const [orders, setOrders] = useState([]);
+        const [ordersMeta, setOrdersMeta] = useState(null);
+        const [ordersStatus, setOrdersStatus] = useState('idle');
+        const [ordersError, setOrdersError] = useState('');
+        const [orderDetail, setOrderDetail] = useState(null);
+        const [orderDetailStatus, setOrderDetailStatus] = useState('idle');
+        const [orderDetailError, setOrderDetailError] = useState('');
         const [view, setView] = useState(resolveView(window.location.pathname));
 
         const isLoggedIn = Boolean(authToken);
@@ -335,6 +359,25 @@
         }, [view, authToken]);
 
         useEffect(() => {
+            if (view !== 'orders') {
+                return;
+            }
+
+            if (!authToken) {
+                setOrders([]);
+                setOrdersMeta(null);
+                setOrdersStatus('idle');
+                setOrdersError('');
+                setOrderDetail(null);
+                setOrderDetailStatus('idle');
+                setOrderDetailError('');
+                return;
+            }
+
+            loadOrders();
+        }, [view, authToken]);
+
+        useEffect(() => {
             if (!cartItems.length) {
                 setDiscountAmount(null);
                 setDiscountedSubtotal(null);
@@ -398,6 +441,13 @@
             setPendingOrder(null);
             setPaymentError('');
             setPaymentStatus('idle');
+            setOrders([]);
+            setOrdersMeta(null);
+            setOrdersStatus('idle');
+            setOrdersError('');
+            setOrderDetail(null);
+            setOrderDetailStatus('idle');
+            setOrderDetailError('');
             navigate('/');
         }
 
@@ -804,6 +854,77 @@
                 setCartError(err.message || 'Error al cargar el carrito.');
             } finally {
                 setCartStatus('idle');
+            }
+        }
+
+        async function loadOrders() {
+            if (!authToken) {
+                return;
+            }
+
+            setOrdersStatus('loading');
+            setOrdersError('');
+            setOrderDetail(null);
+            setOrderDetailError('');
+            setOrderDetailStatus('idle');
+            try {
+                const response = await fetch(
+                    buildApiUrl('/api/v1/orders?page=1&pageSize=20'),
+                    {
+                        headers: {
+                            Authorization: `Bearer ${authToken}`,
+                        },
+                    }
+                );
+
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        clearSession();
+                        throw new Error('Sesión expirada.');
+                    }
+
+                    throw new Error(getErrorMessage(payload, 'No se pudieron cargar tus pedidos.'));
+                }
+
+                setOrders(Array.isArray(payload.data) ? payload.data : []);
+                setOrdersMeta(payload.meta || null);
+            } catch (err) {
+                setOrdersError(err.message || 'No se pudieron cargar tus pedidos.');
+            } finally {
+                setOrdersStatus('idle');
+            }
+        }
+
+        async function loadOrderDetail(orderId) {
+            if (!authToken || !orderId) {
+                return;
+            }
+
+            setOrderDetailStatus('loading');
+            setOrderDetailError('');
+            try {
+                const response = await fetch(buildApiUrl(`/api/v1/orders/${orderId}`), {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                });
+
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        clearSession();
+                        throw new Error('Sesión expirada.');
+                    }
+
+                    throw new Error(getErrorMessage(payload, 'No se pudo cargar el pedido.'));
+                }
+
+                setOrderDetail(payload.data || null);
+            } catch (err) {
+                setOrderDetailError(err.message || 'No se pudo cargar el pedido.');
+            } finally {
+                setOrderDetailStatus('idle');
             }
         }
 
@@ -1255,12 +1376,52 @@
             )
         );
 
+        const orderCards = orders.map((order) =>
+            createElement(
+                'article',
+                { className: 'card', key: order.id },
+                createElement('h3', { className: 'card__title' }, `Pedido #${order.id}`),
+                createElement('p', { className: 'card__meta' }, `Estado: ${order.orderStatus}`),
+                createElement('p', { className: 'card__meta' }, `Pago: ${order.paymentStatus}`),
+                createElement(
+                    'p',
+                    { className: 'card__meta' },
+                    `Total: ${formatPrice(order.total)}`
+                ),
+                createElement(
+                    'p',
+                    { className: 'card__meta' },
+                    `Fecha: ${formatDate(order.createdAt)}`
+                ),
+                createElement(
+                    'button',
+                    {
+                        className: 'button button--primary',
+                        type: 'button',
+                        onClick: () => loadOrderDetail(order.id),
+                    },
+                    'Ver detalle'
+                )
+            )
+        );
+
+        const orderDetailItems = orderDetail && Array.isArray(orderDetail.items)
+            ? orderDetail.items.map((item, index) =>
+                createElement(
+                    'p',
+                    { className: 'detail__item', key: `${item.sku}-${index}` },
+                    `- ${item.productName || 'Producto'}${item.variantName ? ` - ${item.variantName}` : ''} x${item.quantity} (${formatPrice(item.price)})`
+                )
+            )
+            : [];
+
         const isLoginView = view === 'login';
         const isRegisterView = view === 'register';
         const isVerifyView = view === 'verify';
         const isAdminTwoFactorView = view === 'admin-2fa';
         const isProfileView = view === 'profile';
         const isCartView = view === 'cart';
+        const isOrdersView = view === 'orders';
         const isHomeView = view === 'home';
         const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
         const cartSubtotal = cartItems.reduce(
@@ -1315,6 +1476,17 @@
                         },
                         cartCount ? `Carrito (${cartCount})` : 'Carrito'
                     ),
+                    isLoggedIn
+                        ? createElement(
+                            'button',
+                            {
+                                className: 'button button--ghost',
+                                type: 'button',
+                                onClick: () => navigate('/orders'),
+                            },
+                            'Mis pedidos'
+                        )
+                        : null,
                     !isLoggedIn
                         ? createElement(
                             'button',
@@ -1978,6 +2150,138 @@
                                 : 'Guardar perfil'
                         )
                     )
+                )
+                : null,
+            isOrdersView
+                ? createElement(
+                    'section',
+                    { className: 'orders' },
+                    createElement('h2', { className: 'section-title' }, 'Mis pedidos'),
+                    !isLoggedIn
+                        ? createElement(
+                            'div',
+                            { className: 'auth__actions' },
+                            createElement(
+                                'p',
+                                { className: 'status' },
+                                'Inicia sesión para ver tus pedidos.'
+                            ),
+                            createElement(
+                                'button',
+                                {
+                                    className: 'button button--primary',
+                                    type: 'button',
+                                    onClick: () => navigate('/login'),
+                                },
+                                'Ir a login'
+                            )
+                        )
+                        : createElement(
+                            'div',
+                            { className: 'orders__content' },
+                            ordersStatus === 'loading'
+                                ? createElement(
+                                    'p',
+                                    { className: 'status' },
+                                    'Cargando pedidos...'
+                                )
+                                : null,
+                            ordersError
+                                ? createElement(
+                                    'p',
+                                    { className: 'status status--error' },
+                                    ordersError
+                                )
+                                : null,
+                            ordersStatus === 'idle' && !orders.length
+                                ? createElement(
+                                    'p',
+                                    { className: 'status' },
+                                    'No tienes pedidos registrados.'
+                                )
+                                : null,
+                            orders.length
+                                ? createElement(
+                                    'div',
+                                    { className: 'orders__list' },
+                                    orderCards
+                                )
+                                : null,
+                            orderDetailStatus === 'loading'
+                                ? createElement(
+                                    'p',
+                                    { className: 'status' },
+                                    'Cargando detalle del pedido...'
+                                )
+                                : null,
+                            orderDetailError
+                                ? createElement(
+                                    'p',
+                                    { className: 'status status--error' },
+                                    orderDetailError
+                                )
+                                : null,
+                            orderDetail
+                                ? createElement(
+                                    'div',
+                                    { className: 'detail' },
+                                    createElement(
+                                        'h3',
+                                        { className: 'detail__title' },
+                                        `Detalle de pedido #${orderDetail.id}`
+                                    ),
+                                    createElement(
+                                        'div',
+                                        { className: 'detail__content' },
+                                        createElement(
+                                            'p',
+                                            null,
+                                            `Estado: ${orderDetail.orderStatus}`
+                                        ),
+                                        createElement(
+                                            'p',
+                                            null,
+                                            `Pago: ${orderDetail.paymentStatus}`
+                                        ),
+                                        createElement(
+                                            'p',
+                                            null,
+                                            `Fecha: ${formatDate(orderDetail.createdAt)}`
+                                        ),
+                                        createElement(
+                                            'p',
+                                            null,
+                                            `Subtotal: ${formatPrice(orderDetail.subtotal)}`
+                                        ),
+                                        createElement(
+                                            'p',
+                                            null,
+                                            `Envío: ${formatPrice(orderDetail.shippingCost)}`
+                                        ),
+                                        orderDetail.discountAmount
+                                            ? createElement(
+                                                'p',
+                                                null,
+                                                `Descuento: -${formatPrice(orderDetail.discountAmount)}`
+                                            )
+                                            : null,
+                                        createElement(
+                                            'p',
+                                            null,
+                                            `Total: ${formatPrice(orderDetail.total)}`
+                                        ),
+                                        createElement('p', null, 'Productos:'),
+                                        orderDetailItems.length
+                                            ? orderDetailItems
+                                            : createElement(
+                                                'p',
+                                                { className: 'status' },
+                                                'Sin items.'
+                                            )
+                                    )
+                                )
+                                : null
+                        )
                 )
                 : null,
             isCartView

@@ -66,6 +66,37 @@ async function findOrderWithItems(orderId, userId) {
     return order ? order.get({ plain: true }) : null;
 }
 
+async function fetchOrdersByUser(userId, pagination) {
+    const page = pagination && pagination.page ? pagination.page : 1;
+    const pageSize = pagination && pagination.pageSize ? pagination.pageSize : 10;
+    const offset = (page - 1) * pageSize;
+
+    const orders = await Order.findAll({
+        where: { userId },
+        attributes: [
+            'id',
+            'orderStatus',
+            'paymentStatus',
+            'subtotalCents',
+            'shippingCostCents',
+            'discountCode',
+            'discountPercentage',
+            'discountAmountCents',
+            'totalCents',
+            'createdAt',
+        ],
+        order: [['createdAt', 'DESC']],
+        limit: pageSize,
+        offset,
+    });
+
+    return orders.map((order) => order.get({ plain: true }));
+}
+
+async function fetchOrdersCountByUser(userId) {
+    return Order.count({ where: { userId } });
+}
+
 async function updateOrderStatus(orderId, userId, payload, transaction) {
     const order = await Order.findOne({
         where: { id: orderId, userId },
@@ -252,6 +283,8 @@ async function updateOrderStatusEmails(orderId, payload, transaction) {
 module.exports = {
     createOrder,
     findOrderWithItems,
+    fetchOrdersByUser,
+    fetchOrdersCountByUser,
     updateOrderStatus,
     updateOrderStatusById,
     findOrderById,

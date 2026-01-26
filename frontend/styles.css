@@ -237,6 +237,21 @@ p {
     border: 1px solid #e5e7eb;
 }
 
+.orders {
+    margin-top: 24px;
+    padding: 20px;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+}
+
+.orders__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
 .cart {
     margin-top: 24px;
     padding: 20px;
@@ -352,7 +367,15 @@ p {
     border: 1px solid #e5e7eb;
 }
 
+.detail__title {
+    margin: 0 0 12px;
+}
+
 .detail__content p {
     margin: 6px 0 0;
     color: #374151;
+}
+
+.detail__item {
+    margin: 4px 0;
 }
