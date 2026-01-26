@@ -70,10 +70,17 @@ async function listOrders(filters, pagination) {
 }
 
 async function updateOrderStatus(orderId, orderStatus) {
-    const updated = await orderRepository.updateOrderStatusById(orderId, { orderStatus });
-    if (!updated) {
+    const existing = await orderRepository.findOrderById(orderId);
+    if (!existing) {
         return { error: 'not_found' };
     }
+
+    if ((orderStatus === 'shipped' || orderStatus === 'delivered')
+        && existing.paymentStatus !== 'paid') {
+        return { error: 'payment_required', paymentStatus: existing.paymentStatus };
+    }
+
+    const updated = await orderRepository.updateOrderStatusById(orderId, { orderStatus });
 
     if (orderStatus === 'shipped' || orderStatus === 'delivered') {
         try {

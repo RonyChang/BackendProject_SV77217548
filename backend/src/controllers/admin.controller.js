@@ -85,6 +85,14 @@ async function updateOrderStatus(req, res, next) {
                 meta: {},
             });
         }
+        if (result.error === 'payment_required') {
+            return res.status(409).json({
+                data: null,
+                message: 'No se puede actualizar sin pago confirmado',
+                errors: [{ message: 'Pago no confirmado para esta orden' }],
+                meta: { paymentStatus: result.paymentStatus || null },
+            });
+        }
 
         return res.status(200).json({
             data: result,

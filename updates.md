@@ -207,10 +207,6 @@
 ### Cambios
 - Emails de estado `shipped` y `delivered` via Resend.
 - Columnas `shipped_email_sent_at` y `delivered_email_sent_at` en orders.
-
-## Version: v0.8.2
-
-### Cambios
 - Boton de WhatsApp para consultar por producto.
 - Boton de WhatsApp para consultar por orden creada.
 - Numero y mensaje configurables desde `frontend/index.html`.

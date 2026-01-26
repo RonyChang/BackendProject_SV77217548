@@ -112,6 +112,14 @@ async function updateOrderStatusById(orderId, payload, transaction) {
     return order.get({ plain: true });
 }
 
+async function findOrderById(orderId) {
+    const order = await Order.findOne({
+        where: { id: orderId },
+    });
+
+    return order ? order.get({ plain: true }) : null;
+}
+
 async function updateOrderStripeData(orderId, payload, transaction) {
     const order = await Order.findOne({
         where: { id: orderId },
@@ -246,6 +254,7 @@ module.exports = {
     findOrderWithItems,
     updateOrderStatus,
     updateOrderStatusById,
+    findOrderById,
     updateOrderStripeData,
     findExpiredPendingOrders,
     findOrderForPaymentEmail,

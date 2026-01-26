@@ -7,6 +7,7 @@
     const apiBase = window.API_BASE_URL || 'http://localhost:3000';
     const whatsappNumber = window.WHATSAPP_NUMBER || '';
     const whatsappTemplate = window.WHATSAPP_TEMPLATE || '';
+    const whatsappOrderTemplate = window.WHATSAPP_ORDER_TEMPLATE || '';
     const initialAuthToken = window.localStorage.getItem('authToken') || '';
     const GUEST_CART_KEY = 'guestCart';
 
@@ -31,18 +32,26 @@
     }
 
     function buildWhatsappMessage({ variant, order }) {
-        const template = whatsappTemplate
-            ? whatsappTemplate
-            : 'Hola, quiero consultar por {productName}. SKU: {sku}.';
+        const template = order
+            ? (whatsappOrderTemplate
+                ? whatsappOrderTemplate
+                : 'Hola, quiero consultar por mi pedido #{orderId}. Total: {total}.')
+            : (whatsappTemplate
+                ? whatsappTemplate
+                : 'Hola, quiero consultar por {productName}. SKU: {sku}.');
 
         const safeSku = variant && variant.sku ? variant.sku : '';
         const safeName = getVariantTitle(variant);
         const orderId = order && order.id ? String(order.id) : '';
+        const totalText = order && Number.isFinite(order.total)
+            ? formatPrice(order.total)
+            : '';
 
         return template
             .replace('{productName}', safeName)
             .replace('{sku}', safeSku)
-            .replace('{orderId}', orderId);
+            .replace('{orderId}', orderId)
+            .replace('{total}', totalText);
     }
 
     function formatPrice(value) {
