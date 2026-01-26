@@ -5,11 +5,44 @@
     const createElement = React.createElement;
 
     const apiBase = window.API_BASE_URL || 'http://localhost:3000';
+    const whatsappNumber = window.WHATSAPP_NUMBER || '';
+    const whatsappTemplate = window.WHATSAPP_TEMPLATE || '';
     const initialAuthToken = window.localStorage.getItem('authToken') || '';
     const GUEST_CART_KEY = 'guestCart';
 
     function buildApiUrl(path) {
         return `${apiBase}${path}`;
+    }
+
+    function buildWhatsappUrl(message) {
+        if (!whatsappNumber) {
+            return '';
+        }
+
+        const normalized = whatsappNumber.replace(/\D/g, '');
+        if (!normalized) {
+            return '';
+        }
+
+        const text = message ? encodeURIComponent(message) : '';
+        return text
+            ? `https://wa.me/${normalized}?text=${text}`
+            : `https://wa.me/${normalized}`;
+    }
+
+    function buildWhatsappMessage({ variant, order }) {
+        const template = whatsappTemplate
+            ? whatsappTemplate
+            : 'Hola, quiero consultar por {productName}. SKU: {sku}.';
+
+        const safeSku = variant && variant.sku ? variant.sku : '';
+        const safeName = getVariantTitle(variant);
+        const orderId = order && order.id ? String(order.id) : '';
+
+        return template
+            .replace('{productName}', safeName)
+            .replace('{sku}', safeSku)
+            .replace('{orderId}', orderId);
     }
 
     function formatPrice(value) {
@@ -2122,7 +2155,21 @@
                             paymentStatus === 'loading'
                                 ? 'Redirigiendo...'
                                 : 'Pagar con Stripe'
-                        )
+                        ),
+                        whatsappNumber
+                            ? createElement(
+                                'a',
+                                {
+                                    className: 'button button--whatsapp',
+                                    href: buildWhatsappUrl(
+                                        buildWhatsappMessage({ order: pendingOrder })
+                                    ),
+                                    target: '_blank',
+                                    rel: 'noopener noreferrer',
+                                },
+                                'Consultar por WhatsApp'
+                            )
+                            : null
                     ),
                     paymentError
                         ? createElement(
@@ -2196,7 +2243,21 @@
                                         onClick: () => handleAddToCart(selected),
                                     },
                                     'Agregar al carrito'
-                                )
+                                ),
+                                whatsappNumber
+                                    ? createElement(
+                                        'a',
+                                        {
+                                            className: 'button button--whatsapp',
+                                            href: buildWhatsappUrl(
+                                                buildWhatsappMessage({ variant: selected })
+                                            ),
+                                            target: '_blank',
+                                            rel: 'noopener noreferrer',
+                                        },
+                                        'Consultar por WhatsApp'
+                                    )
+                                    : null
                             )
                             : createElement(
                                 'p',

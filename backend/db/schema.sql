@@ -114,6 +114,8 @@ CREATE TABLE IF NOT EXISTS orders (
     stripe_session_id VARCHAR(200),
     stripe_payment_intent_id VARCHAR(200),
     payment_email_sent_at TIMESTAMPTZ,
+    shipped_email_sent_at TIMESTAMPTZ,
+    delivered_email_sent_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

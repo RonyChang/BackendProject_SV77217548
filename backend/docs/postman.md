@@ -1,4 +1,4 @@
-# Postman - Pruebas API (v0.8.0)
+# Postman - Pruebas API (v0.8.2)
 
 ## Base URL
 - Local: `http://localhost:3000`

@@ -1,5 +1,6 @@
 const adminRepository = require('../repositories/admin.repository');
 const orderRepository = require('../repositories/order.repository');
+const orderStatusEmailService = require('./orderStatusEmail.service');
 
 function centsToSoles(value) {
     if (value === null || value === undefined) {
@@ -72,6 +73,14 @@ async function updateOrderStatus(orderId, orderStatus) {
     const updated = await orderRepository.updateOrderStatusById(orderId, { orderStatus });
     if (!updated) {
         return { error: 'not_found' };
+    }
+
+    if (orderStatus === 'shipped' || orderStatus === 'delivered') {
+        try {
+            await orderStatusEmailService.sendStatusEmail(orderId, orderStatus);
+        } catch (error) {
+            console.error('Error al enviar email de estado:', error.message || error);
+        }
     }
 
     return {

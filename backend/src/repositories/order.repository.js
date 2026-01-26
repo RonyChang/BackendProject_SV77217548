@@ -218,6 +218,29 @@ async function updateOrderPaymentEmailSentAt(orderId, sentAt, transaction) {
     return order.get({ plain: true });
 }
 
+async function updateOrderStatusEmails(orderId, payload, transaction) {
+    const order = await Order.findOne({
+        where: { id: orderId },
+        transaction,
+        lock: transaction ? transaction.LOCK.UPDATE : undefined,
+    });
+
+    if (!order) {
+        return null;
+    }
+
+    if (payload.shippedEmailSentAt) {
+        order.shippedEmailSentAt = payload.shippedEmailSentAt;
+    }
+
+    if (payload.deliveredEmailSentAt) {
+        order.deliveredEmailSentAt = payload.deliveredEmailSentAt;
+    }
+
+    await order.save({ transaction });
+    return order.get({ plain: true });
+}
+
 module.exports = {
     createOrder,
     findOrderWithItems,
@@ -227,4 +250,5 @@ module.exports = {
     findExpiredPendingOrders,
     findOrderForPaymentEmail,
     updateOrderPaymentEmailSentAt,
+    updateOrderStatusEmails,
 };

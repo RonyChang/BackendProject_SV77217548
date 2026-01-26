@@ -194,6 +194,21 @@ p {
     background: #f3f4f6;
 }
 
+.button--whatsapp {
+    background: #16a34a;
+    border-color: #16a34a;
+    color: #ffffff;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.button--whatsapp:hover {
+    background: #15803d;
+}
+
 .status {
     margin: 16px 0;
     color: #6b7280;
