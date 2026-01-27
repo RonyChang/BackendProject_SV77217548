@@ -1,4 +1,5 @@
 const orderRepository = require('../repositories/order.repository');
+const orderService = require('./order.service');
 const paymentEmailService = require('./paymentEmail.service');
 
 function parseOrderId(session) {
@@ -52,13 +53,13 @@ async function handleSessionExpired(session) {
         return { ignored: true, reason: 'order_id_missing' };
     }
 
-    const updated = await orderRepository.updateOrderStatusById(orderId, {
-        paymentStatus: 'rejected',
-        orderStatus: 'cancelled',
-    });
-
-    if (!updated) {
+    const cancelled = await orderService.cancelOrderById(orderId);
+    if (cancelled.error === 'not_found') {
         return { ignored: true, reason: 'order_not_found' };
+    }
+
+    if (cancelled.error === 'status') {
+        return { ignored: true, reason: 'status_not_pending' };
     }
 
     return { handled: true, orderId };

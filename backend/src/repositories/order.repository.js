@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Order, OrderItem, User } = require('../models');
+const { Order, OrderItem, User, sequelize } = require('../models');
 
 async function createOrder(
     {
@@ -66,6 +66,29 @@ async function findOrderWithItems(orderId, userId) {
     return order ? order.get({ plain: true }) : null;
 }
 
+async function findOrderWithItemsById(orderId) {
+    const order = await Order.findOne({
+        where: { id: orderId },
+        include: [
+            {
+                model: OrderItem,
+                as: 'items',
+                attributes: [
+                    'id',
+                    'productVariantId',
+                    'sku',
+                    'productName',
+                    'variantName',
+                    'priceCents',
+                    'quantity',
+                ],
+            },
+        ],
+    });
+
+    return order ? order.get({ plain: true }) : null;
+}
+
 async function fetchOrdersByUser(userId, pagination) {
     const page = pagination && pagination.page ? pagination.page : 1;
     const pageSize = pagination && pagination.pageSize ? pagination.pageSize : 10;
@@ -83,9 +106,9 @@ async function fetchOrdersByUser(userId, pagination) {
             'discountPercentage',
             'discountAmountCents',
             'totalCents',
-            'createdAt',
+            [sequelize.col('created_at'), 'createdAt'],
         ],
-        order: [['createdAt', 'DESC']],
+        order: [[sequelize.col('created_at'), 'DESC']],
         limit: pageSize,
         offset,
     });
@@ -283,6 +306,7 @@ async function updateOrderStatusEmails(orderId, payload, transaction) {
 module.exports = {
     createOrder,
     findOrderWithItems,
+    findOrderWithItemsById,
     fetchOrdersByUser,
     fetchOrdersCountByUser,
     updateOrderStatus,

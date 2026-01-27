@@ -306,6 +306,28 @@ async function cancelOrder(userId, orderId) {
     return { id: order.id, orderStatus: 'cancelled' };
 }
 
+async function cancelOrderById(orderId) {
+    const order = await orderRepository.findOrderWithItemsById(orderId);
+    if (!order) {
+        return { error: 'not_found' };
+    }
+
+    if (order.orderStatus !== 'pendingPayment') {
+        return { error: 'status' };
+    }
+
+    await sequelize.transaction(async (transaction) => {
+        await releaseStock(order.items || [], transaction);
+        await orderRepository.updateOrderStatusById(
+            orderId,
+            { orderStatus: 'cancelled', paymentStatus: 'rejected' },
+            transaction
+        );
+    });
+
+    return { id: order.id, orderStatus: 'cancelled' };
+}
+
 async function cancelExpiredOrders(holdMinutes) {
     const minutes = Number(holdMinutes);
     if (!Number.isFinite(minutes) || minutes <= 0) {
@@ -344,5 +366,6 @@ module.exports = {
     listOrders,
     getOrderDetail,
     cancelOrder,
+    cancelOrderById,
     cancelExpiredOrders,
 };
