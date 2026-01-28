@@ -60,7 +60,7 @@ async function fetchOrders(filters, pagination) {
                 required: false,
             },
         ],
-        order: [['createdAt', 'DESC']],
+        order: [[sequelize.literal('"Order"."created_at"'), 'DESC']],
         limit: pagination.pageSize,
         offset: (pagination.page - 1) * pagination.pageSize,
         subQuery: false,
