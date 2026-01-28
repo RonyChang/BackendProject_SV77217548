@@ -208,10 +208,10 @@ async function updateOrderStripeData(orderId, payload, transaction) {
 async function findExpiredPendingOrders(beforeDate) {
     const orders = await Order.findAll({
         where: {
-            orderStatus: 'pendingPayment',
-            createdAt: {
-                [Op.lt]: beforeDate,
-            },
+            [Op.and]: [
+                { orderStatus: 'pendingPayment' },
+                sequelize.where(sequelize.col('created_at'), Op.lt, beforeDate),
+            ],
         },
         include: [
             {
@@ -228,7 +228,7 @@ async function findExpiredPendingOrders(beforeDate) {
                 ],
             },
         ],
-        order: [['createdAt', 'ASC']],
+        order: [[sequelize.col('created_at'), 'ASC']],
     });
 
     return orders.map((order) => order.get({ plain: true }));

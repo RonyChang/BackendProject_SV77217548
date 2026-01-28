@@ -2,7 +2,7 @@ const RESEND_API_URL = 'https://api.resend.com/emails';
 
 function getResendConfig() {
     const apiKey = process.env.RESEND_API_KEY || '';
-    const from = process.env.RESEND_FROM || process.env.EMAIL_FROM || '';
+    const from = process.env.RESEND_FROM || '';
 
     if (!apiKey) {
         throw new Error('RESEND_API_KEY no configurado');
