@@ -1,10 +1,11 @@
-const { Op, sequelize } = require('sequelize');
+const { Op } = require('sequelize');
 const {
     Order,
     OrderItem,
     User,
     ProductVariant,
     Inventory,
+    sequelize,
 } = require('../models');
 
 function buildOrderFilters(filters) {
