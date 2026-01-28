@@ -1,4 +1,4 @@
-const { Op } = require('sequelize');
+const { Op, sequelize } = require('sequelize');
 const {
     Order,
     OrderItem,
