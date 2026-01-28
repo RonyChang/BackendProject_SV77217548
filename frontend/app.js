@@ -10,7 +10,7 @@
     const whatsappOrderTemplate = window.WHATSAPP_ORDER_TEMPLATE || '';
     const initialAuthToken = window.localStorage.getItem('authToken') || '';
     const GUEST_CART_KEY = 'guestCart';
-    const CATALOG_PAGE_SIZE = 12;
+    const CATALOG_PAGE_SIZE = 9;
 
     function buildApiUrl(path) {
         return `${apiBase}${path}`;
