@@ -210,7 +210,7 @@ async function findExpiredPendingOrders(beforeDate) {
         where: {
             [Op.and]: [
                 { orderStatus: 'pendingPayment' },
-                sequelize.where(sequelize.col('orders.created_at'), Op.lt, beforeDate),
+                sequelize.where(sequelize.literal('"Order"."created_at"'), Op.lt, beforeDate),
             ],
         },
         include: [
@@ -228,7 +228,7 @@ async function findExpiredPendingOrders(beforeDate) {
                 ],
             },
         ],
-        order: [[sequelize.col('orders.created_at'), 'ASC']],
+        order: [[sequelize.literal('"Order"."created_at"'), 'ASC']],
     });
 
     return orders.map((order) => order.get({ plain: true }));
