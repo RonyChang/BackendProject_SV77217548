@@ -76,7 +76,7 @@ async function updateOrderStatus(orderId, orderStatus) {
     }
 
     if ((orderStatus === 'shipped' || orderStatus === 'delivered')
-        && existing.paymentStatus !== 'paid') {
+        && existing.paymentStatus !== 'approved') {
         return { error: 'payment_required', paymentStatus: existing.paymentStatus };
     }
 
