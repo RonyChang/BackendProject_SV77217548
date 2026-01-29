@@ -10,6 +10,7 @@
     const whatsappOrderTemplate = window.WHATSAPP_ORDER_TEMPLATE || '';
     const initialAuthToken = window.localStorage.getItem('authToken') || '';
     const GUEST_CART_KEY = 'guestCart';
+    const CATALOG_PAGE_SIZE = 9;
 
     function buildApiUrl(path) {
         return `${apiBase}${path}`;
@@ -240,6 +241,8 @@
         const [selected, setSelected] = useState(null);
         const [detailStatus, setDetailStatus] = useState('idle');
         const [detailError, setDetailError] = useState('');
+        const [catalogPage, setCatalogPage] = useState(1);
+        const [catalogTotalPages, setCatalogTotalPages] = useState(1);
 
         const [authToken, setAuthToken] = useState(initialAuthToken);
         const [loginForm, setLoginForm] = useState({ email: '', password: '' });
@@ -451,24 +454,46 @@
             navigate('/');
         }
 
-        async function loadVariants() {
+        async function loadVariants(page = 1) {
             setStatus('loading');
             setError('');
             try {
                 const response = await fetch(
-                    buildApiUrl('/api/v1/catalog/variants?page=1&pageSize=12')
+                    buildApiUrl(`/api/v1/catalog/variants?page=${page}&pageSize=${CATALOG_PAGE_SIZE}`)
                 );
                 if (!response.ok) {
                     throw new Error('No se pudo cargar el catálogo de productos.');
                 }
 
                 const payload = await response.json();
+                const meta = payload && payload.meta ? payload.meta : {};
+                const totalPages = Number.isFinite(Number(meta.totalPages))
+                    ? Number(meta.totalPages)
+                    : (Number.isFinite(Number(meta.total)) && Number(meta.total) > 0
+                        ? Math.ceil(Number(meta.total) / CATALOG_PAGE_SIZE)
+                        : 1);
                 setVariants(Array.isArray(payload.data) ? payload.data : []);
+                setCatalogPage(Number.isFinite(Number(meta.page)) ? Number(meta.page) : page);
+                setCatalogTotalPages(totalPages || 1);
             } catch (err) {
                 setError(err.message || 'Error al cargar el catálogo.');
             } finally {
                 setStatus('idle');
             }
+        }
+
+        function handleCatalogPrev() {
+            if (catalogPage <= 1 || status === 'loading') {
+                return;
+            }
+            loadVariants(catalogPage - 1);
+        }
+
+        function handleCatalogNext() {
+            if (catalogPage >= catalogTotalPages || status === 'loading') {
+                return;
+            }
+            loadVariants(catalogPage + 1);
         }
 
         async function loadVariantDetail(sku) {
@@ -2511,6 +2536,37 @@
                         )
                         : null,
                     createElement('section', { className: 'catalog' }, cards),
+                    catalogTotalPages > 1
+                        ? createElement(
+                            'div',
+                            { className: 'pagination' },
+                            createElement(
+                                'button',
+                                {
+                                    className: 'button button--ghost',
+                                    type: 'button',
+                                    onClick: handleCatalogPrev,
+                                    disabled: catalogPage <= 1 || status === 'loading',
+                                },
+                                'Anterior'
+                            ),
+                            createElement(
+                                'span',
+                                { className: 'pagination__info' },
+                                `Página ${catalogPage} de ${catalogTotalPages}`
+                            ),
+                            createElement(
+                                'button',
+                                {
+                                    className: 'button button--ghost',
+                                    type: 'button',
+                                    onClick: handleCatalogNext,
+                                    disabled: catalogPage >= catalogTotalPages || status === 'loading',
+                                },
+                                'Siguiente'
+                            )
+                        )
+                        : null,
                     createElement(
                         'section',
                         { className: 'detail' },
